@@ -214,11 +214,37 @@
         {{ isSubmitting ? 'Enviando…' : 'Crear cuenta' }}
       </button>
     </form>
+
+     <nav class="registro__footer" aria-label="Enlaces relacionados">
+      <p>
+        ¿Ya tienes cuenta?
+        <a
+          class="registro__link"
+          href="#iniciar-sesion"
+          @click.prevent="emit('navigate', 'login')"
+        >
+          Inicia sesión
+        </a>
+      </p>
+      <p>
+        ¿Olvidaste tu contraseña?
+        <a
+          class="registro__link"
+          href="#recuperar"
+          @click.prevent="emit('navigate', 'recover')"
+        >
+          Recupérala aquí
+        </a>
+      </p>
+    </nav>
+
   </section>
 </template>
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+
+const emit = defineEmits(['navigate'])
 
 const initialState = () => ({
   nombre: '',
@@ -391,6 +417,26 @@ const handleSubmit = async () => {
   flex-direction: column;
   align-items: center;
   gap: 1.75rem;
+}
+
+.registro__footer {
+  width: 100%;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #4b5563;
+}
+
+.registro__link {
+  color: #4f46e5;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.registro__link:hover {
+  text-decoration: underline;
 }
 
 .registro__title {
