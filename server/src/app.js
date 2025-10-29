@@ -3,6 +3,7 @@ import cors from 'cors'
 import morgan from 'morgan'
 
 import registroRoutes from './routes/registro.routes.js'
+import authRoutes from './routes/auth.routes.js'
 
 const app = express()
 
@@ -15,6 +16,7 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api/registro', registroRoutes)
+app.use('/api/auth', authRoutes)
 
 app.use((err, req, res, next) => {
   console.error('Error no controlado:', err)

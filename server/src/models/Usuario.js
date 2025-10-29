@@ -41,6 +41,14 @@ const usuarioSchema = new mongoose.Schema(
     aceptaTerminos: {
       type: Boolean,
       required: true
+    },
+     twoFactor: {
+      code: {
+        type: String
+      },
+      expiresAt: {
+        type: Date
+      }
     }
   },
   {
