@@ -2,7 +2,12 @@
   <section class="registro" aria-labelledby="registro-title">
     <h1 id="registro-title" class="registro__title">Registro de usuario</h1>
 
-    <form class="registro__form" @submit.prevent="handleSubmit" novalidate>
+    <form
+      class="registro__form"
+      :aria-busy="isSubmitting"
+      @submit.prevent="handleSubmit"
+      novalidate
+    >
       <div class="registro__field">
         <label class="registro__label" for="nombre">
           Nombre <span class="registro__required" aria-hidden="true">*</span>
@@ -197,17 +202,23 @@
       <p v-if="error" class="registro__feedback registro__feedback--error" role="alert">
         {{ error }}
       </p>
-      <p v-if="success" class="registro__feedback registro__feedback--success" role="status">
-        ¡Registro enviado! Revisa tu correo para continuar con el proceso.
+      <p
+        v-if="successMessage"
+        class="registro__feedback registro__feedback--success"
+        role="status"
+      >
+        {{ successMessage }}
       </p>
 
-      <button class="registro__submit" type="submit">Crear cuenta</button>
+      <button class="registro__submit" type="submit" :disabled="isSubmitting">
+        {{ isSubmitting ? 'Enviando…' : 'Crear cuenta' }}
+      </button>
     </form>
   </section>
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 const initialState = () => ({
   nombre: '',
@@ -223,7 +234,8 @@ const initialState = () => ({
 
 const form = reactive(initialState())
 const error = ref('')
-const success = ref(false)
+const successMessage = ref('')
+const isSubmitting = ref(false)
 const initialErrors = () => ({
   nombre: '',
   apellidoPaterno: '',
@@ -311,24 +323,59 @@ watch(
   }
 )
 
-const handleSubmit = () => {
+const apiBaseUrl = computed(() => {
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  return base.endsWith('/') ? base.slice(0, -1) : base
+})
+
+const handleSubmit = async () => {
   error.value = ''
-  success.value = false
+  successMessage.value = ''
 
   if (!validateForm()) {
     error.value = 'Revisa los campos marcados para continuar.'
     return
   }
 
-  success.value = true
+  isSubmitting.value = true
 
-  const datosEnviados = { ...form }
-  delete datosEnviados.confirmPassword
+  try {
+    const payload = {
+      nombre: form.nombre,
+      apellidoPaterno: form.apellidoPaterno,
+      apellidoMaterno: form.apellidoMaterno,
+      email: form.email,
+      telefono: form.telefono,
+      password: form.password,
+      confirmPassword: form.confirmPassword,
+      aceptaTerminos: form.aceptaTerminos,
+      rol: form.rol
+    }
 
-  console.table(datosEnviados)
+    const response = await fetch(`${apiBaseUrl.value}/api/registro`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
 
-  Object.assign(form, initialState())
-  Object.assign(errors, initialErrors())
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(data.message || 'No fue posible completar el registro.')
+    }
+
+    successMessage.value = data.message ||
+      '¡Registro enviado! Revisa tu correo para continuar con el proceso.'
+
+    Object.assign(form, initialState())
+    Object.assign(errors, initialErrors())
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'No fue posible completar el registro.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -477,6 +524,13 @@ const handleSubmit = () => {
 .registro__submit:focus-visible {
   outline: 3px solid rgba(79, 70, 229, 0.35);
   outline-offset: 2px;
+}
+
+.registro__submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+  box-shadow: none;
+  transform: none;
 }
 
 @media (max-width: 540px) {

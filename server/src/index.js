@@ -1,21 +1,24 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import dotenv from 'dotenv' 
+
+import app from './app.js'
+import { connectDatabase } from './config/database.js'
 
 dotenv.config();
 
-const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Conexión a MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ Conectado a MongoDB Atlas'))
-  .catch(err => console.error('❌ Error al conectar a MongoDB:', err));
+const bootstrap = async () => {
+  try {
+    await connectDatabase(process.env.MONGODB_URI)
+    app.listen(PORT, () => {
+      console.log(`Servidor escuchando en el puerto ${PORT}`)
+    })
+  } catch (error) {
+    console.error('Error al iniciar el servidor:', error)
+    process.exit(1)
+  }
+}
 
-app.get('/', (req, res) => {
-  res.send('Servidor funcionando correctamente 🚀');
-});
-
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
-});
+bootstrap()
