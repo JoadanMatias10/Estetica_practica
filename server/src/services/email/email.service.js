@@ -54,5 +54,48 @@ export const sendTwoFactorCodeEmail = async ({ to, code, nombre }) => {
     `
   }
 
+   await getTransporter().sendMail(mailOptions)
+}
+
+export const sendPasswordResetEmail = async ({ to, token, nombre }) => {
+  if (!to || !token) {
+    throw new Error('El destinatario y el token son obligatorios para enviar la recuperación.')
+  }
+
+  const greetingName = nombre ? `Hola ${nombre},` : 'Hola,'
+
+  const resetUrlBase = process.env.APP_PASSWORD_RESET_URL
+  const resetLink = resetUrlBase
+    ? `${resetUrlBase}${resetUrlBase.includes('?') ? '&' : '?'}token=${token}&email=${encodeURIComponent(
+        to
+      )}`
+    : ''
+
+  const plainInstructions = resetLink
+    ? `Sigue este enlace para restablecer tu contraseña: ${resetLink}`
+    : `Utiliza el siguiente token para restablecer tu contraseña: ${token}`
+
+  const htmlInstructions = resetLink
+    ? `
+        <p>Puedes restablecer tu contraseña dando clic en el siguiente enlace:</p>
+        <p><a href="${resetLink}">Restablecer contraseña</a></p>
+      `
+    : `
+        <p>Utiliza el siguiente token para restablecer tu contraseña:</p>
+        <p style="font-size: 24px; letter-spacing: 4px; font-weight: 700;">${token}</p>
+      `
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM,
+    to,
+    subject: 'Recupera el acceso a tu cuenta',
+    text: `${greetingName}\n\n${plainInstructions}\nEste enlace o token expirará en 60 minutos.`,
+    html: `
+      <p>${greetingName}</p>
+      ${htmlInstructions}
+      <p>Este enlace o token expirará en 60 minutos.</p>
+    `
+  }
+
   await getTransporter().sendMail(mailOptions)
 }

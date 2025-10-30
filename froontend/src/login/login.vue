@@ -1,7 +1,10 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import { useApiBaseUrl } from '../composables/useApiBaseUrl'
 
 const emit = defineEmits(['navigate'])
+
+const { apiBaseUrl } = useApiBaseUrl()
 
 const form = reactive({
   email: '',
@@ -17,6 +20,10 @@ const errors = reactive({
 const statusMessage = ref('')
 const statusType = ref('neutral')
 const isSubmitting = ref(false)
+const isAwaitingTwoFactor = ref(false)
+const isVerifyingTwoFactor = ref(false)
+const twoFactorCode = ref('')
+const twoFactorError = ref('')
 const showTwoFactorBanner = ref(false)
 
 const failedAttempts = ref([])
@@ -30,9 +37,6 @@ const isRateLimited = computed(() => lockExpiresAt.value > Date.now())
 const rateLimitSeconds = computed(() =>
   isRateLimited.value ? Math.ceil((lockExpiresAt.value - Date.now()) / 1000) : 0,
 )
-
-const recommendedTwoFactor = true
-const userHasTwoFactorEnabled = ref(false)
 
 const fieldValidators = {
   email(value) {
@@ -71,6 +75,30 @@ const validateForm = () => {
   return !errors.email && !errors.password
 }
 
+const validateTwoFactorCode = () => {
+  const value = twoFactorCode.value.trim()
+
+  if (!value) {
+    twoFactorError.value = 'Ingresa el código de verificación.'
+    return false
+  }
+
+  if (!/^\d{6}$/.test(value)) {
+    twoFactorError.value = 'El código debe tener 6 dígitos.'
+    return false
+  }
+
+  twoFactorError.value = ''
+  return true
+}
+
+const resetTwoFactorFlow = () => {
+  isAwaitingTwoFactor.value = false
+  isVerifyingTwoFactor.value = false
+  twoFactorCode.value = ''
+  twoFactorError.value = ''
+}
+
 const resetRateLimit = () => {
   failedAttempts.value = []
   lockExpiresAt.value = 0
@@ -94,6 +122,8 @@ const handleSubmit = async () => {
 
   statusMessage.value = ''
   statusType.value = 'neutral'
+  showTwoFactorBanner.value = false
+  resetTwoFactorFlow()
 
   if (isRateLimited.value) {
     statusMessage.value = `Demasiados intentos. Intenta de nuevo en ${rateLimitSeconds.value} segundos.`
@@ -107,27 +137,113 @@ const handleSubmit = async () => {
 
   isSubmitting.value = true
 
-  await new Promise((resolve) => setTimeout(resolve, 600))
+  try {
+    const response = await fetch(`${apiBaseUrl.value}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+        remember: form.remember,
+      }),
+    })
 
-  const credentialsAreValid =
-    form.email.toLowerCase() === 'demo@ejemplo.com' && form.password === 'Password123!'
+    const data = await response.json().catch(() => ({}))
 
-  if (!credentialsAreValid) {
-    statusMessage.value = 'Correo o contraseña inválidos.'
+    if (!response.ok) {
+      if (response.status === 401) {
+        registerFailedAttempt()
+        statusMessage.value = 'Correo o contraseña inválidos.'
+      } else if (data?.message) {
+        statusMessage.value = data.message
+      } else {
+        statusMessage.value = 'No fue posible iniciar sesión. Intenta nuevamente.'
+      }
+
+      statusType.value = 'error'
+      return
+    }
+
+    resetRateLimit()
+
+    const recommendedBanner = Boolean(data.twoFactorRecommended)
+
+    if (data.twoFactorRequired) {
+      isAwaitingTwoFactor.value = true
+      statusMessage.value =
+        data.message || 'Revisa tu correo e ingresa el código de verificación.'
+      statusType.value = 'info'
+    } else {
+      statusMessage.value = data.message || 'Sesión iniciada correctamente.'
+      statusType.value = 'success'
+      showTwoFactorBanner.value = recommendedBanner
+    }
+  } catch (error) {
+    statusMessage.value = 'No fue posible iniciar sesión. Intenta nuevamente.'
     statusType.value = 'error'
-    registerFailedAttempt()
+  } finally {
     isSubmitting.value = false
+  }
+}
+
+const handleVerifyTwoFactor = async () => {
+  if (isVerifyingTwoFactor.value) return
+
+  statusMessage.value = ''
+  statusType.value = 'neutral'
+
+  if (!validateTwoFactorCode()) {
+    statusMessage.value = twoFactorError.value
+    statusType.value = 'error'
     return
   }
 
-  resetRateLimit()
-  statusMessage.value = 'Sesión iniciada correctamente.'
-  statusType.value = 'success'
+  isVerifyingTwoFactor.value = true
 
-  const shouldSuggestTwoFactor = recommendedTwoFactor && !userHasTwoFactorEnabled.value
-  showTwoFactorBanner.value = shouldSuggestTwoFactor
+  try {
+    const response = await fetch(`${apiBaseUrl.value}/api/auth/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: form.email,
+        code: twoFactorCode.value.trim(),
+      }),
+    })
 
-  isSubmitting.value = false
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      const message = data?.message || 'El código no es válido.'
+      twoFactorError.value = message
+      statusMessage.value = message
+      statusType.value = 'error'
+      return
+    }
+
+    resetRateLimit()
+    twoFactorError.value = ''
+    twoFactorCode.value = ''
+    isAwaitingTwoFactor.value = false
+    statusMessage.value = data.message || 'Autenticación completada correctamente.'
+    statusType.value = 'success'
+    showTwoFactorBanner.value = Boolean(data.twoFactorRecommended)
+  } catch (error) {
+    statusMessage.value = 'No fue posible verificar el código. Intenta nuevamente.'
+    statusType.value = 'error'
+  } finally {
+    isVerifyingTwoFactor.value = false
+  }
+}
+
+const handleCancelTwoFactor = () => {
+  resetTwoFactorFlow()
+  statusMessage.value = ''
+  statusType.value = 'neutral'
+  form.password = ''
 }
 </script>
 
@@ -141,6 +257,7 @@ const handleSubmit = async () => {
     </header>
 
     <form
+      v-if="!isAwaitingTwoFactor"
       class="login__form"
       :aria-busy="isSubmitting"
       @submit.prevent="handleSubmit"
@@ -230,6 +347,69 @@ const handleSubmit = async () => {
 
       <p v-if="isRateLimited" class="login__status login__status--warning" role="status">
         Vuelve a intentarlo en {{ rateLimitSeconds }} segundos.
+      </p>
+    </form>
+
+    <form
+      v-else
+      class="login__form"
+      :aria-busy="isVerifyingTwoFactor"
+      @submit.prevent="handleVerifyTwoFactor"
+      novalidate
+    >
+      <p class="login__info">
+        Introduce el código de 6 dígitos que enviamos a
+        <span class="login__info-email">{{ form.email }}</span>.
+      </p>
+
+      <div class="login__field">
+        <label class="login__label" for="login-two-factor">Código de verificación</label>
+        <input
+          id="login-two-factor"
+          v-model.trim="twoFactorCode"
+          :class="['login__input', { 'login__input--invalid': twoFactorError }]"
+          type="text"
+          name="twoFactorCode"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          pattern="\d*"
+          maxlength="6"
+          required
+          :aria-invalid="Boolean(twoFactorError)"
+          :aria-describedby="twoFactorError ? 'login-two-factor-error' : undefined"
+          @blur="validateTwoFactorCode"
+        />
+        <p
+          v-if="twoFactorError"
+          id="login-two-factor-error"
+          class="login__error"
+          role="alert"
+        >
+          {{ twoFactorError }}
+        </p>
+      </div>
+
+      <button class="login__submit" type="submit" :disabled="isVerifyingTwoFactor">
+        <span v-if="isVerifyingTwoFactor" class="login__spinner" aria-hidden="true"></span>
+        <span>{{ isVerifyingTwoFactor ? 'Verificando…' : 'Verificar código' }}</span>
+      </button>
+
+      <button
+        class="login__secondary"
+        type="button"
+        :disabled="isVerifyingTwoFactor"
+        @click="handleCancelTwoFactor"
+      >
+        Usar otra cuenta
+      </button>
+
+      <p
+        v-if="statusMessage"
+        :class="['login__status', `login__status--${statusType}`]"
+        role="status"
+        aria-live="polite"
+      >
+        {{ statusMessage }}
       </p>
     </form>
 
@@ -427,6 +607,51 @@ const handleSubmit = async () => {
 .login__status--warning {
   background: rgba(254, 249, 195, 0.8);
   color: #854d0e;
+}
+
+.login__status--info {
+  background: rgba(191, 219, 254, 0.65);
+  color: #1d4ed8;
+}
+
+.login__status--neutral {
+  background: rgba(229, 231, 235, 0.85);
+  color: #374151;
+}
+
+.login__info {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+.login__info-email {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.login__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(79, 70, 229, 0.35);
+  background: transparent;
+  color: #4f46e5;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.login__secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login__secondary:not(:disabled):hover {
+  border-color: #4f46e5;
+  background: rgba(79, 70, 229, 0.08);
 }
 
 .login__footer {

@@ -61,8 +61,11 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
+import { useApiBaseUrl } from '../composables/useApiBaseUrl'
 
 const emit = defineEmits(['navigate'])
+
+const { apiBaseUrl } = useApiBaseUrl()
 
 const form = reactive({
   email: '',
@@ -100,13 +103,36 @@ const handleSubmit = async () => {
 
   isSubmitting.value = true
 
-  await new Promise((resolve) => setTimeout(resolve, 600))
+  try {
+    const response = await fetch(`${apiBaseUrl.value}/api/auth/recover`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: form.email }),
+    })
 
-  statusMessage.value =
-    'Si tu correo está registrado, recibirás un mensaje con los siguientes pasos en los próximos minutos.'
-  statusType.value = 'success'
+    const data = await response.json().catch(() => ({}))
 
-  isSubmitting.value = false
+    if (!response.ok) {
+      throw new Error(
+        data.message || 'No fue posible enviar el enlace. Intenta nuevamente.',
+      )
+    }
+
+    statusMessage.value =
+      data.message ||
+      'Si tu correo está registrado, recibirás un mensaje con los siguientes pasos en los próximos minutos.'
+    statusType.value = 'success'
+  } catch (error) {
+    statusMessage.value =
+      error instanceof Error
+        ? error.message
+        : 'No fue posible enviar el enlace. Intenta nuevamente.'
+    statusType.value = 'error'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -237,6 +263,16 @@ const handleSubmit = async () => {
 .recover__status--success {
   background: rgba(209, 250, 229, 0.7);
   color: #166534;
+}
+
+.recover__status--error {
+  background: rgba(254, 226, 226, 0.7);
+  color: #991b1b;
+}
+
+.recover__status--neutral {
+  background: rgba(229, 231, 235, 0.85);
+  color: #374151;
 }
 
 .recover__footer {

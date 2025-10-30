@@ -36,3 +36,14 @@ export const validateTwoFactorPayload = (payload) => {
 
   return ''
 }
+
+export const validateRecoverPayload = (payload) => {
+  const message = validateRequiredFields(payload, ['email'])
+  if (message) return message
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+    return 'El correo electrónico no tiene un formato válido.'
+  }
+
+  return ''
+}

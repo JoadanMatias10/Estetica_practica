@@ -42,6 +42,10 @@ const usuarioSchema = new mongoose.Schema(
       type: Boolean,
       required: true
     },
+     twoFactorEnabled: {
+      type: Boolean,
+      default: false
+    },
      twoFactor: {
       code: {
         type: String
@@ -49,7 +53,15 @@ const usuarioSchema = new mongoose.Schema(
       expiresAt: {
         type: Date
       }
-    }
+    },
+     passwordReset: {
+      token: {
+        type: String
+      },
+      expiresAt: {
+        type: Date
+      }
+     }
   },
   {
     timestamps: true
