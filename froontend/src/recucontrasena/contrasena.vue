@@ -238,7 +238,7 @@ const handleSubmit = async () => {
   box-shadow: 0 12px 25px rgba(99, 102, 241, 0.35);
 }
 
-.recover__spinner {
+.recover__spinner { 
   width: 1.1rem;
   height: 1.1rem;
   border-radius: 50%;
