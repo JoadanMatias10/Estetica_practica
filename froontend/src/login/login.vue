@@ -14,6 +14,8 @@ const form = reactive({
   remember: false,
 })
 
+const sessionUserName = ref('')
+
 const errors = reactive({
   email: '',
   password: '',
@@ -124,6 +126,44 @@ const registerFailedAttempt = () => {
   }
 }
 
+const toTitleCase = (input) =>
+  input
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ')
+
+const formatDisplayName = (value) => {
+  const trimmed = (value || '').trim()
+
+  if (!trimmed) {
+    return 'Cliente Panamericana'
+  }
+
+  if (trimmed.includes('@')) {
+    const [local] = trimmed.split('@')
+    if (!local) {
+      return 'Cliente Panamericana'
+    }
+
+    const cleaned = local.replace(/[._-]+/g, ' ')
+    const normalised = cleaned.replace(/\s+/g, ' ').trim()
+    return normalised ? toTitleCase(normalised) : 'Cliente Panamericana'
+  }
+
+  return toTitleCase(trimmed)
+}
+
+const navigateToClientExperience = (rawName) => {
+  const displayName = formatDisplayName(rawName || sessionUserName.value || form.email)
+  sessionUserName.value = displayName
+  statusMessage.value = ''
+  statusType.value = 'neutral'
+  showTwoFactorBanner.value = false
+  resetTwoFactorFlow()
+  emit('navigate', 'dashboard', { userName: displayName })
+}
+
 const handleSubmit = async () => {
   if (isSubmitting.value) return
 
@@ -131,6 +171,7 @@ const handleSubmit = async () => {
   statusType.value = 'neutral'
   showTwoFactorBanner.value = false
   resetTwoFactorFlow()
+  sessionUserName.value = ''
 
   if (isRateLimited.value) {
     statusMessage.value = `Demasiados intentos. Intenta de nuevo en ${rateLimitSeconds.value} segundos.`
@@ -175,17 +216,20 @@ const handleSubmit = async () => {
 
     resetRateLimit()
 
-    const recommendedBanner = Boolean(data.twoFactorRecommended)
+   const candidateName =
+      data?.user?.nombre || data?.user?.name || data?.nombre || data?.name || form.email
 
     if (data.twoFactorRequired) {
       isAwaitingTwoFactor.value = true
+      sessionUserName.value = formatDisplayName(candidateName)
       statusMessage.value =
         data.message || 'Revisa tu correo e ingresa el código de verificación.'
       statusType.value = 'info'
     } else {
-      statusMessage.value = data.message || 'Sesión iniciada correctamente.'
-      statusType.value = 'success'
-      showTwoFactorBanner.value = recommendedBanner
+      resetTwoFactorFlow()
+      resetRateLimit()
+      navigateToClientExperience(candidateName)
+      return
     }
   } catch (error) {
     statusMessage.value = 'No fue posible iniciar sesión. Intenta nuevamente.'
@@ -235,9 +279,8 @@ const handleVerifyTwoFactor = async () => {
     twoFactorError.value = ''
     twoFactorCode.value = ''
     isAwaitingTwoFactor.value = false
-    statusMessage.value = data.message || 'Autenticación completada correctamente.'
-    statusType.value = 'success'
-    showTwoFactorBanner.value = Boolean(data.twoFactorRecommended)
+    navigateToClientExperience(sessionUserName.value || form.email)
+    return
   } catch (error) {
     statusMessage.value = 'No fue posible verificar el código. Intenta nuevamente.'
     statusType.value = 'error'
@@ -251,6 +294,7 @@ const handleCancelTwoFactor = () => {
   statusMessage.value = ''
   statusType.value = 'neutral'
   form.password = ''
+  sessionUserName.value = ''
 }
 
 const handleGoogleSignIn = async () => {
@@ -297,13 +341,12 @@ const handleGoogleSignIn = async () => {
       return
     }
 
-    statusMessage.value =
-      data?.message ||
-      (result.user.displayName
-        ? `Bienvenido, ${result.user.displayName}.`
-        : 'Sesión iniciada con Google correctamente.')
-    statusType.value = 'success'
-    showTwoFactorBanner.value = Boolean(data?.twoFactorRecommended)
+      const googleName =
+      data?.user?.nombre || result.user.displayName || data?.user?.name || result.user.email
+
+    resetRateLimit()
+    navigateToClientExperience(googleName)
+    return
   } catch (error) {
     if (error?.code === 'auth/popup-closed-by-user') {
       statusMessage.value = 'Cerraste la ventana de Google antes de finalizar.'

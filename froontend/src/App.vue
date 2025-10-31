@@ -4,12 +4,15 @@ import LoginForm from './login/login.vue'
 import RegistroForm from './Registro/registro.vue'
 import RecoverPassword from './recucontrasena/contrasena.vue'
 import ResetPassword from './recucontrasena/restablecer.vue'
+import ClienteDashboard from './components/ClienteDashboard.vue'
+
 
 const views = {
   login: LoginForm,
   register: RegistroForm,
   recover: RecoverPassword,
   reset: ResetPassword,
+  dashboard: ClienteDashboard,
 }
 
 const activeView = ref('login')
@@ -17,6 +20,10 @@ const activeView = ref('login')
 const resetParams = reactive({
   token: '',
   email: '',
+})
+
+const session = reactive({
+  userName: '',
 })
 
 if (typeof window !== 'undefined') {
@@ -38,6 +45,12 @@ const componentProps = computed(() => {
     return {
       initialToken: resetParams.token,
       initialEmail: resetParams.email,
+    }
+  }
+
+  if (activeView.value === 'dashboard') {
+    return {
+      userName: session.userName,
     }
   }
 
@@ -85,6 +98,14 @@ const handleNavigate = (view, payload = {}) => {
     resetParams.email = ''
   }
 
+  if (view === 'dashboard') {
+    if (payload && typeof payload === 'object' && 'userName' in payload) {
+      session.userName = payload.userName ?? ''
+    }
+  } else if (view !== 'reset') {
+    session.userName = ''
+  }
+
   activeView.value = view
   syncUrl()
 }
@@ -116,7 +137,7 @@ const handleNavigate = (view, payload = {}) => {
 }
 
 .app-shell__content {
-  width: min(640px, 100%);
+  width: min(1120px, 100%);
 }
 
 .app-shell-fade-enter-active,
