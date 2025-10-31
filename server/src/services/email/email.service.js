@@ -5,6 +5,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const FIRESTORE_COLLECTION = process.env.FIREBASE_MAIL_COLLECTION || 'mail'
 
 let cachedFirestore = undefined
+let warnedNoFirestore = false
 
 const normalizeEmail = (value) => (typeof value === 'string' ? value.trim() : '')
 
@@ -37,19 +38,28 @@ const resolveFirestore = () => {
   }
 }
 
-const getFirestoreOrThrow = () => {
+const getFirestoreOrNull = () => {
   const firestore = resolveFirestore()
 if (!firestore) {
-    throw new Error(
-      'Firebase no está configurado para enviar correos. Verifica las credenciales y la extensión Trigger Email.'
-    )
+    if (!warnedNoFirestore) {
+      console.warn(
+        'Firebase no está configurado para enviar correos. Verifica las credenciales y la extensión Trigger Email.'
+      )
+      warnedNoFirestore = true
+    }
+    return null
   }
 
+  warnedNoFirestore = false
   return firestore
 }
 
 const enqueueEmail = async ({ to, subject, text, html, from }) => {
-  const firestore = getFirestoreOrThrow()
+  const firestore = getFirestoreOrNull()
+
+  if (!firestore) {
+    return false
+  }
 const document = {
     to: assertEmail(to, 'El destinatario debe ser un correo electrónico válido.'),
     message: { subject },
@@ -69,20 +79,40 @@ const document = {
     document.message.html = html
   }
 
-  await firestore.collection(EMAIL_COLLECTION).add(document)
+  try {
+    await firestore.collection(FIRESTORE_COLLECTION).add(document)
+    return true
+  } catch (error) {
+    const errorMessage = error?.message ?? ''
+
+    if (typeof errorMessage === 'string' && errorMessage.includes('DECODER routines')) {
+      cachedFirestore = null
+      warnedNoFirestore = false
+      console.warn(
+        'No fue posible conectar con Firestore porque las credenciales de Firebase son inválidas o están mal formateadas.'
+      )
+    } else {
+      console.error('No fue posible encolar el correo en Firestore:', error)
+    }
+
+    return false
+
+  }
 }
 
 export const sendTwoFactorCodeEmail = async ({ to, code, nombre }) => {
   if (!code) {
     throw new Error('El código de verificación es obligatorio.')
   }
-const greeting = nombre ? `Hola ${nombre},` : 'Hola,'
-await enqueueEmail({
+
+  const greeting = nombre ? `Hola ${nombre},` : 'Hola,'
+
+  await enqueueEmail({
     to,
     subject: 'Tu código de verificación',
-     text: `${greeting}\n\nTu código de verificación es: ${code}\nEste código expirará en 10 minutos.`,
+      text: `${greeting}\n\nTu código de verificación es: ${code}\nEste código expirará en 10 minutos.`,
     html: `
-    <p>${greeting}</p>
+      <p>${greeting}</p>
       <p>Tu código de verificación es:</p>
       <h2 style="font-size: 28px; letter-spacing: 6px;">${code}</h2>
       <p>Este código expirará en 10 minutos.</p>
@@ -108,10 +138,10 @@ export const sendPasswordResetEmail = async ({ to, token, nombre }) => {
     <p><a href="${link}">Restablecer contraseña</a></p>
       `
     : `
-        <p>Utiliza el siguiente token para restablecer tu contraseña:</p>
-        <p style="font-size: 24px; letter-spacing: 4px; font-weight: 700;">${token}</p>
-      `
-      await enqueueEmail({
+         <p>Utiliza el siguiente token para restablecer tu contraseña:</p>
+      <p style="font-size: 24px; letter-spacing: 4px; font-weight: 700;">${token}</p>
+    `
+  const emailQueued = await enqueueEmail({
     to,
     subject: 'Recupera el acceso a tu cuenta',
     text: `${greeting}\n\n${textInstruction}\nEste enlace o token expirará en 60 minutos.`,
@@ -121,4 +151,10 @@ export const sendPasswordResetEmail = async ({ to, token, nombre }) => {
       <p>Este enlace o token expirará en 60 minutos.</p>
 `,
   })
+
+  if (!emailQueued) {
+    console.warn('No se pudo encolar el correo de recuperación de contraseña porque Firebase no está configurado.')
+  }
+
 }
+
