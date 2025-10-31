@@ -1,6 +1,8 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import { signInWithPopup } from 'firebase/auth'
 import { useApiBaseUrl } from '../composables/useApiBaseUrl'
+import { auth, googleProvider } from '../firebase/client'
 
 const emit = defineEmits(['navigate'])
 
@@ -25,6 +27,7 @@ const isVerifyingTwoFactor = ref(false)
 const twoFactorCode = ref('')
 const twoFactorError = ref('')
 const showTwoFactorBanner = ref(false)
+const isGoogleSubmitting = ref(false)
 
 const failedAttempts = ref([])
 const lockExpiresAt = ref(0)
@@ -36,6 +39,10 @@ const RATE_LIMIT_LOCK_MS = 60000
 const isRateLimited = computed(() => lockExpiresAt.value > Date.now())
 const rateLimitSeconds = computed(() =>
   isRateLimited.value ? Math.ceil((lockExpiresAt.value - Date.now()) / 1000) : 0,
+)
+
+const googleSignInAvailable = computed(
+  () => Boolean(auth) && Boolean(googleProvider),
 )
 
 const fieldValidators = {
@@ -245,6 +252,76 @@ const handleCancelTwoFactor = () => {
   statusType.value = 'neutral'
   form.password = ''
 }
+
+const handleGoogleSignIn = async () => {
+  if (isGoogleSubmitting.value) return
+
+  if (!googleSignInAvailable.value) {
+    statusMessage.value =
+      'La autenticación con Google no está disponible en este momento. Intenta más tarde.'
+    statusType.value = 'error'
+    return
+  }
+
+  statusMessage.value = ''
+  statusType.value = 'neutral'
+  showTwoFactorBanner.value = false
+  isGoogleSubmitting.value = true
+
+  try {
+    const result = await signInWithPopup(auth, googleProvider)
+    const token = await result.user.getIdToken()
+
+    if (!token) {
+      statusMessage.value =
+        'Google no devolvió un token de autenticación válido. Intenta nuevamente.'
+      statusType.value = 'error'
+      return
+    }
+
+    const response = await fetch(`${apiBaseUrl.value}/api/auth/google`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      statusMessage.value =
+        data?.message ||
+        'El servidor rechazó el inicio de sesión con Google. Intenta nuevamente más tarde.'
+      statusType.value = response.status === 503 ? 'warning' : 'error'
+      return
+    }
+
+    statusMessage.value =
+      data?.message ||
+      (result.user.displayName
+        ? `Bienvenido, ${result.user.displayName}.`
+        : 'Sesión iniciada con Google correctamente.')
+    statusType.value = 'success'
+    showTwoFactorBanner.value = Boolean(data?.twoFactorRecommended)
+  } catch (error) {
+    if (error?.code === 'auth/popup-closed-by-user') {
+      statusMessage.value = 'Cerraste la ventana de Google antes de finalizar.'
+    } else if (error?.code === 'auth/cancelled-popup-request') {
+      statusMessage.value = 'Ya hay una ventana de Google activa. Intenta nuevamente.'
+    } else if (error?.code === 'auth/network-request-failed') {
+      statusMessage.value = 'No hay conexión con Google. Verifica tu red e inténtalo otra vez.'
+    } else {
+      statusMessage.value =
+        'No fue posible iniciar sesión con Google. Verifica tu conexión e inténtalo otra vez.'
+    }
+
+    statusType.value = 'error'
+  } finally {
+    isGoogleSubmitting.value = false
+  }
+}
+
 </script>
 
 <template>
@@ -335,6 +412,54 @@ const handleCancelTwoFactor = () => {
         <span v-if="isSubmitting" class="login__spinner" aria-hidden="true"></span>
         <span>{{ isSubmitting ? 'Iniciando…' : 'Iniciar sesión' }}</span>
       </button>
+
+    <div class="login__divider" role="presentation">
+        <span class="login__divider-line"></span>
+        <span class="login__divider-label">O</span>
+        <span class="login__divider-line"></span>
+      </div>
+
+      <button
+        class="login__google"
+        type="button"
+        :disabled="
+          isGoogleSubmitting || !googleSignInAvailable || isSubmitting || isRateLimited
+        "
+        @click="handleGoogleSignIn"
+      >
+        <span class="login__google-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+            <path
+              d="M21.35 11.1H12v2.91h5.35c-.23 1.27-.94 2.35-2.01 3.07v2.56h3.24c1.9-1.75 2.87-4.34 2.87-7.4 0-.71-.06-1.4-.1-2.14Z"
+              fill="#4285F4"
+            />
+            <path
+              d="M12 22c2.43 0 4.47-.8 5.96-2.18l-3.24-2.56c-.9.6-2.05.97-2.72.97-2.07 0-3.82-1.4-4.45-3.28H4.21v2.65C5.68 19.98 8.62 22 12 22Z"
+              fill="#34A853"
+            />
+            <path
+              d="M7.55 14.95c-.2-.6-.32-1.24-.32-1.95 0-.68.12-1.33.3-1.95V8.4H4.21C3.44 9.93 3 11.52 3 13c0 1.52.44 3.07 1.21 4.6l3.34-2.65Z"
+              fill="#FBBC05"
+            />
+            <path
+              d="M12 7.58c1.32 0 2.5.45 3.44 1.35l2.56-2.56C16.46 4.61 14.42 3.7 12 3.7 8.62 3.7 5.68 5.72 4.21 8.4l3.32 2.65C8.18 8.98 9.93 7.58 12 7.58Z"
+              fill="#EA4335"
+            />
+          </svg>
+        </span>
+        <span class="login__google-label">
+          <span
+            v-if="isGoogleSubmitting"
+            class="login__spinner login__spinner--dark"
+            aria-hidden="true"
+          ></span>
+          <span>{{ isGoogleSubmitting ? 'Conectando…' : 'Iniciar sesión con Google' }}</span>
+        </span>
+      </button>
+
+      <p v-if="!googleSignInAvailable" class="login__hint" role="note">
+        Configura tus credenciales de Firebase para habilitar el acceso con Google.
+      </p>
 
       <p
         v-if="statusMessage"
@@ -572,6 +697,69 @@ const handleCancelTwoFactor = () => {
   box-shadow: 0 12px 25px rgba(99, 102, 241, 0.35);
 }
 
+.login__divider {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.login__divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(156, 163, 175, 0.1), rgba(156, 163, 175, 0.7));
+}
+
+.login__google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(156, 163, 175, 0.5);
+  background-color: #ffffff;
+  color: #1f2937;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.login__google:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+}
+
+.login__google:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 25px rgba(107, 114, 128, 0.25);
+}
+
+.login__google-icon {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.login__google-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.login__google-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .login__spinner {
   width: 1.1rem;
   height: 1.1rem;
@@ -579,6 +767,11 @@ const handleCancelTwoFactor = () => {
   border: 3px solid rgba(255, 255, 255, 0.4);
   border-top-color: #ffffff;
   animation: login-spin 0.9s linear infinite;
+}
+
+.login__spinner--dark {
+  border-color: rgba(107, 114, 128, 0.3);
+  border-top-color: rgba(31, 41, 55, 0.95);
 }
 
 @keyframes login-spin {
@@ -617,6 +810,13 @@ const handleCancelTwoFactor = () => {
 .login__status--neutral {
   background: rgba(229, 231, 235, 0.85);
   color: #374151;
+}
+
+.login__hint {
+  margin: 0.5rem 0 0;
+  color: #6b7280;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 .login__info {

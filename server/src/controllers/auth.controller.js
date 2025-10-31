@@ -1,4 +1,5 @@
 import { comparePassword } from '../lib/bcrypt.js'
+import { getFirebaseAuth, isFirebaseConfigured } from '../lib/firebase-admin.js'
 import { sendPasswordResetEmail, sendTwoFactorCodeEmail } from '../services/email/email.service.js'
 import {
   createTwoFactorChallenge,
@@ -121,4 +122,64 @@ export const recoverPassword = async (req, res) => {
       .json({ message: 'No fue posible procesar la recuperación. Intenta nuevamente.' })
   }
 
+  }
+
+export const loginWithGoogle = async (req, res) => {
+  if (!isFirebaseConfigured()) {
+    return res.status(503).json({
+      message:
+        'El servidor no tiene configuradas las credenciales de Firebase. Comunícate con el administrador.'
+    })
+  }
+
+  const { token } = req.body || {}
+
+  if (!token) {
+    return res.status(400).json({ message: 'El token de autenticación de Google es obligatorio.' })
+  }
+
+  try {
+    const firebaseAuth = getFirebaseAuth()
+
+    if (!firebaseAuth) {
+      return res.status(503).json({
+        message:
+          'El servidor no pudo inicializar Firebase correctamente. Intenta de nuevo más tarde.'
+      })
+    }
+
+    const decodedToken = await firebaseAuth.verifyIdToken(token)
+
+    const email = decodedToken?.email?.toLowerCase()
+
+    if (!email) {
+      return res.status(400).json({ message: 'El token de Google no incluye un correo electrónico válido.' })
+    }
+
+    const usuario = await findUserByEmail(email)
+
+    if (!usuario) {
+      return res.status(404).json({
+        message: 'No se encontró un usuario registrado con tu cuenta de Google.'
+      })
+    }
+
+    return res.status(200).json({
+      message: 'Sesión iniciada con Google correctamente.',
+      twoFactorRequired: false,
+      twoFactorRecommended: !usuario.twoFactorEnabled,
+      user: {
+        id: usuario._id,
+        nombre: usuario.nombre,
+        email: usuario.email
+      }
+    })
+  } catch (error) {
+    console.error('Error al verificar el token de Google:', error)
+
+    return res
+      .status(401)
+      .json({ message: 'El token de Google no es válido o ha expirado. Intenta nuevamente.' })
+  }
 }
+
