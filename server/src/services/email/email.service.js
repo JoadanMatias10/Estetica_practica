@@ -1,6 +1,7 @@
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { getFirebaseAuth } from '../../lib/firebase-admin.js'
 import { sendWithGmail, isGmailConfigured } from './gmail.transport.js'
+import { sendWithSmtp, isSmtpConfigured } from './smtp.transport.js'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const FIRESTORE_COLLECTION = process.env.FIREBASE_MAIL_COLLECTION || 'mail'
@@ -117,24 +118,50 @@ const enqueueEmailWithFirebase = async ({ to, subject, text, html, from }) => {
 
 }
 
+const registerDeliveryInFirestore = (payload, provider) => {
+  enqueueEmailWithFirebase(payload)
+    .then((enqueued) => {
+      if (!enqueued) {
+        console.warn(
+          `El correo se envió correctamente con ${provider}, pero no se pudo registrar en Firestore para seguimiento.`
+        )
+      }
+    })
+    .catch((error) => {
+      console.warn(`No se pudo registrar en Firestore el correo enviado con ${provider}:`, error)
+    })
+}
+
 const sendEmail = async (emailPayload) => {
   const sanitizedPayload = sanitizeEmailPayload(emailPayload)
 
-  const enqueued = await enqueueEmailWithFirebase(sanitizedPayload)
+  const sentWithSmtp = await sendWithSmtp(sanitizedPayload)
 
-  if (enqueued) {
+ if (sentWithSmtp) {
+    registerDeliveryInFirestore(sanitizedPayload, 'SMTP')
     return true
   }
 
   const sentWithGmail = await sendWithGmail(sanitizedPayload)
 
   if (sentWithGmail) {
+    registerDeliveryInFirestore(sanitizedPayload, 'Gmail')
+    return true
+  }
+  
+  const enqueued = await enqueueEmailWithFirebase(sanitizedPayload)
+
+  if (enqueued) {
     return true
   }
 
-  if (!isGmailConfigured()) {
+  if (!isSmtpConfigured() && !isGmailConfigured()) {
     console.warn(
-      'No se pudo enviar el correo porque no hay un proveedor configurado correctamente. Configura Firebase o las variables GMAIL_USER y GMAIL_APP_PASSWORD.'
+      [
+        'No se pudo enviar el correo porque no hay un proveedor configurado correctamente.',
+        'Configura un servidor SMTP o las variables GMAIL_USER y GMAIL_APP_PASSWORD,',
+        'o habilita Firebase Trigger Email.'
+      ].join(' ')
     )
   }
 
@@ -162,7 +189,7 @@ export const sendTwoFactorCodeEmail = async ({ to, code, nombre }) => {
 
   if (!emailQueued) {
     console.warn(
-      'No se pudo enviar el correo con el código de verificación. Verifica la configuración de Firebase o de Gmail.'
+      'No se pudo enviar el correo con el código de verificación. Verifica la configuración de Firebase, SMTP o Gmail.'
     )
   }
 
@@ -205,7 +232,7 @@ export const sendPasswordResetEmail = async ({ to, token, nombre }) => {
 
   if (!emailQueued) {
     console.warn(
-      'No se pudo enviar el correo de recuperación de contraseña. Verifica la configuración de Firebase o de las credenciales de Gmail.'
+      'No se pudo enviar el correo de recuperación de contraseña. Verifica la configuración de Firebase, SMTP o Gmail.'
     )
   }
 

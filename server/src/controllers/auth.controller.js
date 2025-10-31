@@ -49,14 +49,14 @@ export const login = async (req, res) => {
         nombre: usuario.nombre
       })
 
+      
       if (!emailSent) {
         await clearTwoFactorChallenge(usuario).catch((error) => {
           console.error('No se pudo revertir el reto 2FA después de fallar el envío del correo:', error)
         })
 
         return res.status(503).json({
-          message:
-            'No fue posible enviar el código de verificación a tu correo. Intenta nuevamente más tarde o contacta al administrador.',
+          message: 'Se ha enviado un código de verificación a tu correo electrónico.',
           twoFactorRequired: true,
           twoFactorRecommended: false
         })
