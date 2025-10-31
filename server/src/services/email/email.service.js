@@ -1,222 +1,124 @@
-import nodemailer from 'nodemailer'
+import { FieldValue, getFirestore } from 'firebase-admin/firestore'
+import { getFirebaseAuth } from '../../lib/firebase-admin.js'
 
-const REQUIRED_ENV_VARS = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_FROM']
-
-const TRUE_VALUES = new Set(['true', '1', 'yes', 'on']) 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const FIRESTORE_COLLECTION = process.env.FIREBASE_MAIL_COLLECTION || 'mail'
 
-  let transporterPromise
-  let cachedConfigSignature
+let cachedFirestore = undefined
 
-const parseBoolean = (value, defaultValue) => {
-  if (value === undefined) {
-    return defaultValue
-  }
+const normalizeEmail = (value) => (typeof value === 'string' ? value.trim() : '')
 
-  return TRUE_VALUES.has(String(value).trim().toLowerCase())
+const assertEmail = (value, message) => {
+  const email = normalizeEmail(value)
+   if (!EMAIL_REGEX.test(email)) {
+    throw new Error(message)
 }
 
-const validateFromAddress = () => {
-  const from = process.env.SMTP_FROM
+ return email
+}
 
-  if (!EMAIL_REGEX.test(from)) {
+const resolveFirestore = () => {
+  if (cachedFirestore !== undefined) {
+    return cachedFirestore
+  }
+  const auth = getFirebaseAuth()
+
+  if (!auth) {
+    cachedFirestore = null
+    return cachedFirestore
+  }
+   try {
+    cachedFirestore = getFirestore()
+    return cachedFirestore
+  } catch (error) {
+    console.error('No fue posible inicializar Firestore para el envío de correos:', error)
+    cachedFirestore = null
+    return cachedFirestore
+  }
+}
+
+const getFirestoreOrThrow = () => {
+  const firestore = resolveFirestore()
+if (!firestore) {
     throw new Error(
-      'SMTP_FROM debe contener un correo electrónico válido (por ejemplo: usuario@dominio.com).'
+      'Firebase no está configurado para enviar correos. Verifica las credenciales y la extensión Trigger Email.'
     )
   }
 
-  const name = process.env.SMTP_FROM_NAME?.trim()
-
-  return name ? `"${name}" <${from}>` : from
+  return firestore
 }
 
-const validateEmailConfig = () => {
-  REQUIRED_ENV_VARS.filter((envVar) => !process.env[envVar])
-
-  if (missing.length) {
-    throw new Error(
-      `Faltan variables de entorno para configurar el correo: ${missing.join(', ')}`
-    )
+const enqueueEmail = async ({ to, subject, text, html, from }) => {
+  const firestore = getFirestoreOrThrow()
+const document = {
+    to: assertEmail(to, 'El destinatario debe ser un correo electrónico válido.'),
+    message: { subject },
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   }
 
-  const port = Number(process.env.SMTP_PORT)
-
-  if (!Number.isInteger(port) || port <= 0) {
-    throw new Error('La variable SMTP_PORT debe ser un número entero válido.')
+  if (from) {
+    document.from = assertEmail(from, 'El remitente debe ser un correo electrónico válido.')
   }
 
-  return port
-}
-
-const buildTransporter = async () => {
-  const port = validateEmailConfig()
-
-  const secure = parseBoolean(process.env.SMTP_SECURE, port === 465)
-  const requireTLS = parseBoolean(process.env.SMTP_REQUIRE_TLS, false)
-  const ignoreTLS = parseBoolean(process.env.SMTP_IGNORE_TLS, false)
-  const rejectUnauthorized = parseBoolean(process.env.SMTP_TLS_REJECT_UNAUTHORIZED, true)
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port,
-    secure,
-    requireTLS,
-    ignoreTLS,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD
-    },
-    tls: {
-      rejectUnauthorized
-    }
-  })
-
-  await transporter.verify()
-
-  return transporter
-}
-
-const getConfigSignature = () =>
-  JSON.stringify({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-    from: process.env.SMTP_FROM,
-    secure: process.env.SMTP_SECURE,
-    requireTLS: process.env.SMTP_REQUIRE_TLS,
-    ignoreTLS: process.env.SMTP_IGNORE_TLS,
-    rejectUnauthorized: process.env.SMTP_TLS_REJECT_UNAUTHORIZED
-  })
-
-  const getTransporter = () => {
-    const signature = getConfigSignature()
-
-  if (!transporterPromise || cachedConfigSignature !== signature) {
-    cachedConfigSignature = signature
-    transporterPromise = buildTransporter().catch((error) => {
-      transporterPromise = undefined
-      throw error
-    })
-
+  if (text) {
+    document.message.text = text
   }
 
-     return transporterPromise
+   if (html) {
+    document.message.html = html
   }
 
-  const ensureAccepted = (info, context) => {
-  const accepted = Array.isArray(info?.accepted) ? info.accepted.length > 0 : false
-
-  if (!accepted) {
-    throw new Error(
-      `El servidor SMTP rechazó el correo ${context}. Revisa la configuración o las credenciales.`
-    )
-  }
-}
-
-const validateDelivery = (info, context) => {
-  const rejected = Array.isArray(info?.rejected) ? info.rejected : []
-  const pending = Array.isArray(info?.pending) ? info.pending : []
-  const accepted = Array.isArray(info?.accepted) ? info.accepted : []
-
-  if (rejected.length) {
-    throw new Error(
-      `El servidor SMTP rechazó el correo ${context} para: ${rejected.join(', ')}. Verifica el remitente o los destinatarios.`
-    )
-  }
-
-  if (!accepted.length) {
-    throw new Error(
-      `El servidor SMTP no confirmó la entrega del correo ${context}. Revisa la configuración o las credenciales.`
-    )
-  }
-
-  if (pending.length) {
-    console.warn(
-      `El servidor SMTP marcó como pendiente el correo ${context} para: ${pending.join(', ')}.`
-    )
-  }
-}
-
-const sendMail = async (mailOptions, context) => {
-  const transporter = await getTransporter()
-  const from = validateFromAddress()
-
-  const info = await transporter.sendMail({
-    ...mailOptions,
-    from: mailOptions.from || from
-  })
-
-  validateDelivery(info, context)
-
-  return info
+  await firestore.collection(EMAIL_COLLECTION).add(document)
 }
 
 export const sendTwoFactorCodeEmail = async ({ to, code, nombre }) => {
-  if (!to || !code) {
-    throw new Error('El destinatario y el código son obligatorios para enviar el correo 2FA.')
+  if (!code) {
+    throw new Error('El código de verificación es obligatorio.')
   }
-
-  const greetingName = nombre ? `Hola ${nombre},` : 'Hola,'
-
-  const transport = getTransporter()
-
-  const mailOptions = {
+const greeting = nombre ? `Hola ${nombre},` : 'Hola,'
+await enqueueEmail({
     to,
     subject: 'Tu código de verificación',
-    text: `${greetingName}\n\nTu código de verificación es: ${code}\nEste código expirará en 10 minutos.`,
+     text: `${greeting}\n\nTu código de verificación es: ${code}\nEste código expirará en 10 minutos.`,
     html: `
-      <p>${greetingName}</p>
+    <p>${greeting}</p>
       <p>Tu código de verificación es:</p>
       <h2 style="font-size: 28px; letter-spacing: 6px;">${code}</h2>
       <p>Este código expirará en 10 minutos.</p>
-    `
-  }
-
-    await sendMail(mailOptions, 'de verificación 2FA')
+      `,
+  })
 }
 
 export const sendPasswordResetEmail = async ({ to, token, nombre }) => {
-  if (!to || !token) {
-    throw new Error('El destinatario y el token son obligatorios para enviar la recuperación.')
+  if (!token) {
+    throw new Error('El token de recuperación es obligatorio.')
   }
-
-  const greetingName = nombre ? `Hola ${nombre},` : 'Hola,'
-
-  const resetUrlBase = process.env.APP_PASSWORD_RESET_URL
-  const resetLink = resetUrlBase
-    ? `${resetUrlBase}${resetUrlBase.includes('?') ? '&' : '?'}token=${token}&email=${encodeURIComponent(
-        to
-      )}`
+  const greeting = nombre ? `Hola ${nombre},` : 'Hola,'
+  const baseUrl = process.env.APP_PASSWORD_RESET_URL
+  const link = baseUrl
+    ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}token=${token}&email=${encodeURIComponent(to)}`
     : ''
-
-  const plainInstructions = resetLink
-    ? `Sigue este enlace para restablecer tu contraseña: ${resetLink}`
+  const textInstruction = link
+    ? `Sigue este enlace para restablecer tu contraseña: ${link}`
     : `Utiliza el siguiente token para restablecer tu contraseña: ${token}`
-
-  const htmlInstructions = resetLink
+    const htmlInstruction = link
     ? `
         <p>Puedes restablecer tu contraseña dando clic en el siguiente enlace:</p>
-        <p><a href="${resetLink}">Restablecer contraseña</a></p>
+    <p><a href="${link}">Restablecer contraseña</a></p>
       `
     : `
         <p>Utiliza el siguiente token para restablecer tu contraseña:</p>
         <p style="font-size: 24px; letter-spacing: 4px; font-weight: 700;">${token}</p>
       `
-
-    const transport = getTransporter()
-
-  const mailOptions = {
+      await enqueueEmail({
     to,
     subject: 'Recupera el acceso a tu cuenta',
-    text: `${greetingName}\n\n${plainInstructions}\nEste enlace o token expirará en 60 minutos.`,
+    text: `${greeting}\n\n${textInstruction}\nEste enlace o token expirará en 60 minutos.`,
     html: `
-      <p>${greetingName}</p>
-      ${htmlInstructions}
+    <p>${greeting}</p>
+      ${htmlInstruction}
       <p>Este enlace o token expirará en 60 minutos.</p>
-    `
-  }
-
-   await sendMail(mailOptions, 'de restablecimiento de contraseña')
- 
+`,
+  })
 }
