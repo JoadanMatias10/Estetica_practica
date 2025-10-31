@@ -1,13 +1,14 @@
 import nodemailer from 'nodemailer'
 
-const REQUIRED_ENV_VARS = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD']
+const REQUIRED_ENV_VARS = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_FROM']
 
-const TRUE_VALUES = new Set(['true', '1', 'yes', 'on'])
+const TRUE_VALUES = new Set(['true', '1', 'yes', 'on']) 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   let transporterPromise
   let cachedConfigSignature
 
-  const parseBoolean = (value, defaultValue) => {
+const parseBoolean = (value, defaultValue) => {
   if (value === undefined) {
     return defaultValue
   }
@@ -15,16 +16,18 @@ const TRUE_VALUES = new Set(['true', '1', 'yes', 'on'])
   return TRUE_VALUES.has(String(value).trim().toLowerCase())
 }
 
-const getFromAddress = () => {
-  const fallback = process.env.SMTP_USER
+const validateFromAddress = () => {
+  const from = process.env.SMTP_FROM
 
-  if (!process.env.SMTP_FROM && fallback) {
-    console.warn(
-      'SMTP_FROM no está configurado. Se utilizará el usuario autenticado como remitente predeterminado.'
+  if (!EMAIL_REGEX.test(from)) {
+    throw new Error(
+      'SMTP_FROM debe contener un correo electrónico válido (por ejemplo: usuario@dominio.com).'
     )
   }
 
-  return process.env.SMTP_FROM || fallback
+  const name = process.env.SMTP_FROM_NAME?.trim()
+
+  return name ? `"${name}" <${from}>` : from
 }
 
 const validateEmailConfig = () => {
@@ -42,7 +45,7 @@ const validateEmailConfig = () => {
     throw new Error('La variable SMTP_PORT debe ser un número entero válido.')
   }
 
-  return port 
+  return port
 }
 
 const buildTransporter = async () => {
@@ -111,15 +114,40 @@ const getConfigSignature = () =>
   }
 }
 
+const validateDelivery = (info, context) => {
+  const rejected = Array.isArray(info?.rejected) ? info.rejected : []
+  const pending = Array.isArray(info?.pending) ? info.pending : []
+  const accepted = Array.isArray(info?.accepted) ? info.accepted : []
+
+  if (rejected.length) {
+    throw new Error(
+      `El servidor SMTP rechazó el correo ${context} para: ${rejected.join(', ')}. Verifica el remitente o los destinatarios.`
+    )
+  }
+
+  if (!accepted.length) {
+    throw new Error(
+      `El servidor SMTP no confirmó la entrega del correo ${context}. Revisa la configuración o las credenciales.`
+    )
+  }
+
+  if (pending.length) {
+    console.warn(
+      `El servidor SMTP marcó como pendiente el correo ${context} para: ${pending.join(', ')}.`
+    )
+  }
+}
+
 const sendMail = async (mailOptions, context) => {
   const transporter = await getTransporter()
+  const from = validateFromAddress()
 
   const info = await transporter.sendMail({
     ...mailOptions,
-    from: mailOptions.from || getFromAddress()
+    from: mailOptions.from || from
   })
 
-  ensureAccepted(info, context)
+  validateDelivery(info, context)
 
   return info
 }
