@@ -1,37 +1,127 @@
 import nodemailer from 'nodemailer'
 
-const REQUIRED_ENV_VARS = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_FROM']
+const REQUIRED_ENV_VARS = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD']
 
-const validateConfig = () => {
-  const missing = REQUIRED_ENV_VARS.filter((envVar) => !process.env[envVar])
+const TRUE_VALUES = new Set(['true', '1', 'yes', 'on'])
 
-  if (missing.length) {
-    throw new Error(`Faltan variables de entorno para configurar el correo: ${missing.join(', ')}`)
+  let transporterPromise
+  let cachedConfigSignature
+
+  const parseBoolean = (value, defaultValue) => {
+  if (value === undefined) {
+    return defaultValue
   }
+
+  return TRUE_VALUES.has(String(value).trim().toLowerCase())
 }
 
-const createTransporter = () => {
-  validateConfig()
+const getFromAddress = () => {
+  const fallback = process.env.SMTP_USER
 
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: Number(process.env.SMTP_PORT) === 465,
+  if (!process.env.SMTP_FROM && fallback) {
+    console.warn(
+      'SMTP_FROM no está configurado. Se utilizará el usuario autenticado como remitente predeterminado.'
+    )
+  }
+
+  return process.env.SMTP_FROM || fallback
+}
+
+const validateEmailConfig = () => {
+  REQUIRED_ENV_VARS.filter((envVar) => !process.env[envVar])
+
+  if (missing.length) {
+    throw new Error(
+      `Faltan variables de entorno para configurar el correo: ${missing.join(', ')}`
+    )
+  }
+
+  const port = Number(process.env.SMTP_PORT)
+
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error('La variable SMTP_PORT debe ser un número entero válido.')
+  }
+
+  return port 
+}
+
+const buildTransporter = async () => {
+  const port = validateEmailConfig()
+
+  const secure = parseBoolean(process.env.SMTP_SECURE, port === 465)
+  const requireTLS = parseBoolean(process.env.SMTP_REQUIRE_TLS, false)
+  const ignoreTLS = parseBoolean(process.env.SMTP_IGNORE_TLS, false)
+  const rejectUnauthorized = parseBoolean(process.env.SMTP_TLS_REJECT_UNAUTHORIZED, true)
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port,
+    secure,
+    requireTLS,
+    ignoreTLS,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASSWORD
+    },
+    tls: {
+      rejectUnauthorized
     }
   })
-}
 
-let transporter
-
-const getTransporter = () => {
-  if (!transporter) {
-    transporter = createTransporter()
-  }
+  await transporter.verify()
 
   return transporter
+}
+
+const getConfigSignature = () =>
+  JSON.stringify({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+    from: process.env.SMTP_FROM,
+    secure: process.env.SMTP_SECURE,
+    requireTLS: process.env.SMTP_REQUIRE_TLS,
+    ignoreTLS: process.env.SMTP_IGNORE_TLS,
+    rejectUnauthorized: process.env.SMTP_TLS_REJECT_UNAUTHORIZED
+  })
+
+  const getTransporter = () => {
+    const signature = getConfigSignature()
+
+  if (!transporterPromise || cachedConfigSignature !== signature) {
+    cachedConfigSignature = signature
+    transporterPromise = buildTransporter().catch((error) => {
+      transporterPromise = undefined
+      throw error
+    })
+
+  }
+
+     return transporterPromise
+  }
+
+  const ensureAccepted = (info, context) => {
+  const accepted = Array.isArray(info?.accepted) ? info.accepted.length > 0 : false
+
+  if (!accepted) {
+    throw new Error(
+      `El servidor SMTP rechazó el correo ${context}. Revisa la configuración o las credenciales.`
+    )
+  }
+}
+
+const sendMail = async (mailOptions, context) => {
+  const transporter = await getTransporter()
+
+  const info = await transporter.sendMail({
+    ...mailOptions,
+    from: mailOptions.from || getFromAddress()
+  })
+
+  ensureAccepted(info, context)
+
+  return info
 }
 
 export const sendTwoFactorCodeEmail = async ({ to, code, nombre }) => {
@@ -41,8 +131,9 @@ export const sendTwoFactorCodeEmail = async ({ to, code, nombre }) => {
 
   const greetingName = nombre ? `Hola ${nombre},` : 'Hola,'
 
+  const transport = getTransporter()
+
   const mailOptions = {
-    from: process.env.SMTP_FROM,
     to,
     subject: 'Tu código de verificación',
     text: `${greetingName}\n\nTu código de verificación es: ${code}\nEste código expirará en 10 minutos.`,
@@ -54,7 +145,7 @@ export const sendTwoFactorCodeEmail = async ({ to, code, nombre }) => {
     `
   }
 
-   await getTransporter().sendMail(mailOptions)
+    await sendMail(mailOptions, 'de verificación 2FA')
 }
 
 export const sendPasswordResetEmail = async ({ to, token, nombre }) => {
@@ -85,8 +176,9 @@ export const sendPasswordResetEmail = async ({ to, token, nombre }) => {
         <p style="font-size: 24px; letter-spacing: 4px; font-weight: 700;">${token}</p>
       `
 
+    const transport = getTransporter()
+
   const mailOptions = {
-    from: process.env.SMTP_FROM,
     to,
     subject: 'Recupera el acceso a tu cuenta',
     text: `${greetingName}\n\n${plainInstructions}\nEste enlace o token expirará en 60 minutos.`,
@@ -97,5 +189,6 @@ export const sendPasswordResetEmail = async ({ to, token, nombre }) => {
     `
   }
 
-  await getTransporter().sendMail(mailOptions)
+   await sendMail(mailOptions, 'de restablecimiento de contraseña')
+ 
 }
