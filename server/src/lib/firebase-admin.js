@@ -5,13 +5,20 @@ let firebaseAuth = null
 const sanitizePrivateKey = (key) => {
   if (!key) return key
 
-  let sanitized = key
+ let sanitized = key.trim()
 
-  if (sanitized.startsWith('"') && sanitized.endsWith('"')) {
+  if (sanitized.endsWith(',')) {
+    sanitized = sanitized.slice(0, -1).trimEnd()
+  }
+
+  if (
+    (sanitized.startsWith('"') && sanitized.endsWith('"')) ||
+    (sanitized.startsWith("'") && sanitized.endsWith("'"))
+  ) {
     sanitized = sanitized.slice(1, -1)
   }
 
-  return sanitized.replace(/\\n/g, '\n')
+  return sanitized.replace(/\\r?\\n/g, '\n')
 }
 
 const initializeFirebaseAdmin = () => {
