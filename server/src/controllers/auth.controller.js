@@ -4,7 +4,8 @@ import { sendPasswordResetEmail, sendTwoFactorCodeEmail } from '../services/emai
 import {
   createTwoFactorChallenge,
   verifyTwoFactorCode,
-  findUserByEmail
+  findUserByEmail,
+  clearTwoFactorChallenge
 } from '../services/two-factor/two-factor.service.js'
 
 import {
@@ -42,11 +43,25 @@ export const login = async (req, res) => {
     if (usuario.twoFactorEnabled) {
       const { code } = await createTwoFactorChallenge(usuario)
 
-    await sendTwoFactorCodeEmail({
+    const emailSent = await sendTwoFactorCodeEmail({
         to: usuario.email,
         code,
         nombre: usuario.nombre
       })
+
+      if (!emailSent) {
+        await clearTwoFactorChallenge(usuario).catch((error) => {
+          console.error('No se pudo revertir el reto 2FA después de fallar el envío del correo:', error)
+        })
+
+        return res.status(503).json({
+          message:
+            'No fue posible enviar el código de verificación a tu correo. Intenta nuevamente más tarde o contacta al administrador.',
+          twoFactorRequired: true,
+          twoFactorRecommended: false
+        })
+      }
+
 
       return res.status(200).json({
         message: 'Sesión iniciada correctamente.',

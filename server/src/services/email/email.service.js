@@ -148,7 +148,7 @@ export const sendTwoFactorCodeEmail = async ({ to, code, nombre }) => {
 
   const greeting = nombre ? `Hola ${nombre},` : 'Hola,'
 
-  await sendEmail({
+  const emailQueued = await sendEmail({
     to,
     subject: 'Tu código de verificación',
       text: `${greeting}\n\nTu código de verificación es: ${code}\nEste código expirará en 10 minutos.`,
@@ -159,6 +159,15 @@ export const sendTwoFactorCodeEmail = async ({ to, code, nombre }) => {
       <p>Este código expirará en 10 minutos.</p>
       `,
   })
+
+  if (!emailQueued) {
+    console.warn(
+      'No se pudo enviar el correo con el código de verificación. Verifica la configuración de Firebase o de Gmail.'
+    )
+  }
+
+  return emailQueued
+  
 }
 
 export const sendPasswordResetEmail = async ({ to, token, nombre }) => {
