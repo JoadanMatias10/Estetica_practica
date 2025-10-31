@@ -7,11 +7,17 @@ import {
   findUserByEmail
 } from '../services/two-factor/two-factor.service.js'
 
-import { createPasswordResetChallenge } from '../services/password-reset/password-reset.service.js'
+import {
+  createPasswordResetChallenge,
+  clearPasswordResetChallenge,
+  updateUserPassword,
+  validatePasswordResetChallenge,
+} from '../services/password-reset/password-reset.service.js'
 import {
   validateLoginPayload,
   validateTwoFactorPayload,
-  validateRecoverPayload
+  validateRecoverPayload,
+  validateResetPasswordPayload,
 } from '../validators/auth.validator.js'
 
 export const login = async (req, res) => {
@@ -123,6 +129,51 @@ export const recoverPassword = async (req, res) => {
   }
 
   }
+
+  export const resetPassword = async (req, res) => {
+  try {
+    const validationMessage = validateResetPasswordPayload(req.body)
+    if (validationMessage) {
+      return res.status(400).json({ message: validationMessage })
+    }
+
+    const { email, token, password } = req.body
+
+    const usuario = await findUserByEmail(email)
+
+    if (!usuario) {
+      return res.status(400).json({
+        message:
+          'El enlace para restablecer tu contraseña es inválido o ha expirado. Solicita uno nuevo.',
+      })
+    }
+
+    const { valid, reason, expired } = await validatePasswordResetChallenge(usuario, token)
+
+    if (!valid) {
+      if (expired) {
+        await clearPasswordResetChallenge(usuario)
+      }
+
+      return res.status(400).json({
+        message: reason || 'El token para restablecer tu contraseña no es válido.',
+      })
+    }
+
+    await updateUserPassword(usuario, password)
+    await clearPasswordResetChallenge(usuario)
+
+    return res.status(200).json({
+      message:
+        'Tu contraseña se actualizó correctamente. Ahora puedes iniciar sesión con tus nuevos datos.',
+    })
+  } catch (error) {
+    console.error('Error al restablecer la contraseña:', error)
+    return res
+      .status(500)
+      .json({ message: 'No fue posible restablecer la contraseña. Intenta nuevamente.' })
+  }
+}
 
 export const loginWithGoogle = async (req, res) => {
   if (!isFirebaseConfigured()) {

@@ -1,23 +1,92 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import LoginForm from './login/login.vue'
 import RegistroForm from './Registro/registro.vue'
 import RecoverPassword from './recucontrasena/contrasena.vue'
+import ResetPassword from './recucontrasena/restablecer.vue'
 
 const views = {
   login: LoginForm,
   register: RegistroForm,
   recover: RecoverPassword,
+  reset: ResetPassword,
 }
 
 const activeView = ref('login')
 
+const resetParams = reactive({
+  token: '',
+  email: '',
+})
+
+if (typeof window !== 'undefined') {
+  const params = new URLSearchParams(window.location.search)
+  const token = params.get('token') || ''
+  const email = params.get('email') || ''
+
+  if (token || email) {
+    resetParams.token = token
+    resetParams.email = email
+    activeView.value = 'reset'
+  }
+}
+
 const CurrentView = computed(() => views[activeView.value] ?? views.login)
 
-const handleNavigate = (view) => {
-  if (view in views) {
-    activeView.value = view
+const componentProps = computed(() => {
+  if (activeView.value === 'reset') {
+    return {
+      initialToken: resetParams.token,
+      initialEmail: resetParams.email,
+    }
   }
+
+  return {}
+})
+
+const syncUrl = () => {
+  if (typeof window === 'undefined') return
+
+  const url = new URL(window.location.href)
+  url.searchParams.delete('token')
+  url.searchParams.delete('email')
+
+  if (activeView.value === 'reset') {
+    if (resetParams.token) {
+      url.searchParams.set('token', resetParams.token)
+    }
+
+    if (resetParams.email) {
+      url.searchParams.set('email', resetParams.email)
+    }
+  }
+
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`
+  window.history.replaceState({}, '', nextUrl)
+}
+
+const handleNavigate = (view, payload = {}) => {
+  if (!(view in views)) {
+    return
+  }
+
+  if (view === 'reset') {
+    if (payload && typeof payload === 'object') {
+      if (Object.prototype.hasOwnProperty.call(payload, 'token')) {
+        resetParams.token = payload.token ?? ''
+      }
+
+      if (Object.prototype.hasOwnProperty.call(payload, 'email')) {
+        resetParams.email = payload.email ?? ''
+      }
+    }
+  } else {
+    resetParams.token = ''
+    resetParams.email = ''
+  }
+
+  activeView.value = view
+  syncUrl()
 }
 
 </script>
@@ -29,6 +98,7 @@ const handleNavigate = (view) => {
         <component
           :is="CurrentView"
           :key="activeView"
+           v-bind="componentProps"
           @navigate="handleNavigate"
         />
       </transition>

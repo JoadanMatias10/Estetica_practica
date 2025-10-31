@@ -55,6 +55,16 @@
           Crea una cuenta
         </a>
       </p>
+      <p>
+        ¿Ya tienes un token de recuperación?
+        <a
+          class="recover__link"
+          href="#restablecer-contrasena"
+          @click.prevent="emit('navigate', 'reset', { email: form.email })"
+        >
+          Restablece tu contraseña
+        </a>
+      </p>
     </nav>
   </section>
 </template>
