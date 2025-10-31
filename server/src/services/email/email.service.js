@@ -1,6 +1,6 @@
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { getFirebaseAuth } from '../../lib/firebase-admin.js'
-import { sendWithGmail, isGmailConfigured } from './gmail.transport.js'
+import { sendMailWithConfiguredTransport, isTransportReady } from './transporter.js'
 import { sendWithSmtp, isSmtpConfigured } from './smtp.transport.js'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -11,14 +11,14 @@ let warnedNoFirestore = false
 
 const normalizeEmail = (value) => (typeof value === 'string' ? value.trim() : '')
 
-const assertEmail = (value, message) => {
+/*const assertEmail = (value, message) => {
   const email = normalizeEmail(value)
    if (!EMAIL_REGEX.test(email)) {
     throw new Error(message)
 }
 
  return email
-}
+}*/
 
 const resolveFirestore = () => {
   if (cachedFirestore !== undefined) {
@@ -56,16 +56,54 @@ if (!firestore) {
   return firestore
 }
 
+const extractEmailAddress = (value) => {
+  const normalized = normalizeEmail(value)
+
+  if (!normalized) {
+    return { address: '', raw: '' }
+  }
+
+  const angleStart = normalized.lastIndexOf('<')
+  const angleEnd = normalized.lastIndexOf('>')
+
+  if (angleStart !== -1 && angleEnd !== -1 && angleEnd > angleStart) {
+    const candidate = normalizeEmail(normalized.slice(angleStart + 1, angleEnd))
+
+    if (EMAIL_REGEX.test(candidate)) {
+      return { address: candidate, raw: normalized }
+    }
+  }
+
+  if (EMAIL_REGEX.test(normalized)) {
+    return { address: normalized, raw: normalized }
+  }
+
+  return { address: '', raw: normalized }
+}
+
 const sanitizeEmailPayload = ({ to, subject, text, html, from }) => {
+
+   const toAddress = extractEmailAddress(to)
+
+  if (!toAddress.address) {
+    throw new Error('El destinatario debe ser un correo electrónico válido.')
+  }
+
   const sanitized = {
-    to: assertEmail(to, 'El destinatario debe ser un correo electrónico válido.'),
+    to: toAddress.address,
     subject,
     text,
     html
   }
 
   if (from) {
-    sanitized.from = assertEmail(from, 'El remitente debe ser un correo electrónico válido.')
+     const fromAddress = extractEmailAddress(from)
+
+    if (!fromAddress.address) {
+      throw new Error('El remitente debe ser un correo electrónico válido.')
+    }
+
+    sanitized.from = fromAddress.raw
   }
 
   return sanitized
@@ -133,29 +171,36 @@ const registerDeliveryInFirestore = (payload, provider) => {
 }
 
 const sendEmail = async (emailPayload) => {
-  const sanitizedPayload = sanitizeEmailPayload(emailPayload)
+  let sanitizedPayload
 
-  const sentWithSmtp = await sendWithSmtp(sanitizedPayload)
+   try {
+    sanitizedPayload = sanitizeEmailPayload(emailPayload)
+  } catch (error) {
+    console.error('Los datos del correo son inválidos y no se pudo preparar el mensaje:', error)
+    return false
+  }
 
- if (sentWithSmtp) {
-    registerDeliveryInFirestore(sanitizedPayload, 'SMTP')
+  const sentDirectly = await sendMailWithConfiguredTransport(sanitizedPayload)
+
+  if (sentDirectly) {
+    registerDeliveryInFirestore(sanitizedPayload, 'Nodemailer')
     return true
   }
 
-  const sentWithGmail = await sendWithGmail(sanitizedPayload)
+   const enqueued = await enqueueEmailWithFirebase(sanitizedPayload)
 
-  if (sentWithGmail) {
+  /*if (enqueued) {
     registerDeliveryInFirestore(sanitizedPayload, 'Gmail')
     return true
-  }
+  }*/
   
-  const enqueued = await enqueueEmailWithFirebase(sanitizedPayload)
+  //const enqueued = await enqueueEmailWithFirebase(sanitizedPayload)
 
   if (enqueued) {
     return true
   }
 
-  if (!isSmtpConfigured() && !isGmailConfigured()) {
+  if (!isTransportReady()) {
     console.warn(
       [
         'No se pudo enviar el correo porque no hay un proveedor configurado correctamente.',

@@ -1,19 +1,50 @@
 import nodemailer from 'nodemailer'
 
 let cachedTransporter = undefined
+let transporterVerified = false
 let warnedNoConfig = false
 let warnedPartialAuth = false
 
+const invalidateTransporter = (persistNull = false) => {
+  cachedTransporter = persistNull ? null : undefined
+  transporterVerified = false
+}
+
 const normalize = (value) => (typeof value === 'string' ? value.trim() : '')
+
+const resolveEnvReference = (value, seen = new Set()) => {
+  const normalized = normalize(value)
+
+  if (!normalized) {
+    return ''
+  }
+
+  const match = normalized.match(/^\$\{([A-Z0-9_]+)\}$/i)
+
+  if (!match) {
+    return normalized
+  }
+
+  const referencedKey = match[1]
+
+  if (seen.has(referencedKey)) {
+    return ''
+  }
+
+  seen.add(referencedKey)
+
+  return resolveEnvReference(process.env[referencedKey], seen)
+}
+
 const firstNonEmptyEnv = (keys) => {
   for (const key of keys) {
     const rawValue = process.env[key]
 
     if (rawValue !== undefined && rawValue !== null) {
-      const normalized = normalize(rawValue)
+      const resolved = resolveEnvReference(rawValue, new Set([key]))
 
-      if (normalized) {
-        return normalized
+      if (resolved) {
+        return resolved
       }
     }
   }
@@ -56,8 +87,18 @@ const resolveTransporter = () => {
   }
 
   const host = firstNonEmptyEnv(['SMTP_HOST', 'EMAIL_HOST'])
-  const user = firstNonEmptyEnv(['SMTP_USER', 'EMAIL_USER', 'EMAIL_USERNAME'])
-  const password = firstNonEmptyEnv(['SMTP_PASSWORD', 'EMAIL_PASSWORD', 'EMAIL_PASS'])
+  const user = firstNonEmptyEnv([
+    'SMTP_USER',
+    'EMAIL_USER',
+    'EMAIL_USERNAME',
+    'GMAIL_USER'
+  ])
+  const password = firstNonEmptyEnv([
+    'SMTP_PASSWORD',
+    'EMAIL_PASSWORD',
+    'EMAIL_PASS',
+    'GMAIL_APP_PASSWORD'
+  ])
   const port = parsePort(firstNonEmptyEnv(['SMTP_PORT', 'EMAIL_PORT']))
   const secure = parseBoolean(
     firstNonEmptyEnv(['SMTP_SECURE', 'EMAIL_SECURE']),
@@ -65,7 +106,7 @@ const resolveTransporter = () => {
   )
 
   if (!host) {
-    cachedTransporter = null
+    invalidateTransporter(true)
 
     if (!warnedNoConfig) {
       console.warn(
@@ -118,11 +159,12 @@ const resolveTransporter = () => {
 
   try {
     cachedTransporter = nodemailer.createTransport(options)
+    transporterVerified = false
     warnedNoConfig = false
     return cachedTransporter
   } catch (error) {
     console.error('No fue posible inicializar el transporte SMTP:', error)
-    cachedTransporter = null
+    invalidateTransporter(true)
     return cachedTransporter
   }
 }
@@ -136,15 +178,27 @@ export const sendWithSmtp = async ({ to, subject, text, html, from }) => {
     return false
   }
 
+  if (!transporterVerified && typeof transporter.verify === 'function') {
+    try {
+      await transporter.verify()
+      transporterVerified = true
+    } catch (error) {
+      console.error('No fue posible autenticar la conexión SMTP. Revisa host, puerto y credenciales.', error)
+      invalidateTransporter(true)
+      return false
+    }
+  }
+
   const sender =
     normalize(from) ||
     firstNonEmptyEnv([
       'SMTP_DEFAULT_FROM',
       'EMAIL_DEFAULT_FROM',
       'EMAIL_FROM',
-      'EMAIL_SENDER'
+      'EMAIL_SENDER',
+      'GMAIL_DEFAULT_FROM'
     ]) ||
-    firstNonEmptyEnv(['SMTP_USER', 'EMAIL_USER'])
+    firstNonEmptyEnv(['SMTP_USER', 'EMAIL_USER', 'EMAIL_USERNAME', 'GMAIL_USER'])
 
   const mailOptions = {
     to,
@@ -161,10 +215,18 @@ export const sendWithSmtp = async ({ to, subject, text, html, from }) => {
   }
 
   try {
-    await transporter.sendMail(mailOptions)
+    const info = await transporter.sendMail(mailOptions)
+    const acceptedCount = Array.isArray(info?.accepted) ? info.accepted.length : 0
+
+    if (!acceptedCount) {
+      console.error('El servidor SMTP rechazó el mensaje. Revisa la configuración del remitente y destinatario.')
+      return false
+    }
+
     return true
   } catch (error) {
     console.error('No fue posible enviar el correo utilizando SMTP:', error)
+    invalidateTransporter()
     return false
   }
 }

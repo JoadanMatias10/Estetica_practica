@@ -64,15 +64,16 @@ export const login = async (req, res) => {
 
 
       return res.status(200).json({
-        message: 'Sesión iniciada correctamente.',
-        twoFactorRequired: false,
-        twoFactorRecommended: true
+        message: 'Se ha enviado un código de verificación a tu correo electrónico.',
+        twoFactorRequired: true,
+        twoFactorRecommended: false
       })
     }
 
     return res.status(200).json({
-      message: 'Se ha enviado un código de verificación a tu correo electrónico.',
-      twoFactorRequired: true
+      message: 'Sesión iniciada correctamente.',
+      twoFactorRequired: false,
+      twoFactorRecommended: true
     })
   } catch (error) {
     console.error('Error en el inicio de sesión:', error)
