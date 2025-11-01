@@ -368,6 +368,7 @@ const handleGoogleSignIn = async () => {
 </script>
 
 <template>
+<div class="login-shell">
   <section class="login" aria-labelledby="login-title">
     <header class="login__header">
       <h1 id="login-title" class="login__title">Inicio de sesión</h1>
@@ -603,24 +604,34 @@ const handleGoogleSignIn = async () => {
       Protege tu cuenta con 2FA.
     </div>
   </section>
+</div>
 </template>
+
+.login-shell{
+  min-height: 100dvh;              /* alto de viewport con soporte móvil */
+  display: grid;
+  place-items: center;              /* centra vertical y horizontal */
+  padding: clamp(1rem, 4vw, 2rem);  /* respiro en bordes */
+}
 
 <style scoped>
 .login {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  width: min(420px, 100%);
-  padding: 2.5rem 2rem;
+  width: min(560px, 100%);
+  padding: 3rem 2.25rem;
   border-radius: 1.5rem;
   background: #ffffff;
   box-shadow: 0 20px 40px rgba(79, 70, 229, 0.1);
+   margin-inline: auto;  
 }
 
 .login__header {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  text-align: center;
 }
 
 .login__title {
@@ -645,6 +656,7 @@ const handleGoogleSignIn = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  
 }
 
 .login__label {
@@ -654,7 +666,7 @@ const handleGoogleSignIn = async () => {
 
 .login__input {
   display: block;
-  width: 100%;
+  width: auto;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
   border: 1px solid #c7d2fe;
@@ -766,8 +778,8 @@ const handleGoogleSignIn = async () => {
   padding: 0.85rem 1.5rem;
   border-radius: 999px;
   border: 1px solid rgba(156, 163, 175, 0.5);
-  background-color: #ffffff;
-  color: #1f2937;
+  background-color: #000000ff;
+  color: #ffffffff;
   font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
@@ -900,6 +912,7 @@ const handleGoogleSignIn = async () => {
 .login__footer {
   font-size: 0.95rem;
   color: #4b5563;
+  text-align: center;
 }
 
 .login__two-factor {

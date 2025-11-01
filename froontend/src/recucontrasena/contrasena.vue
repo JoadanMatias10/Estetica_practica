@@ -1,4 +1,5 @@
 <template>
+<div class="recover-shell">
   <section class="recover" aria-labelledby="recover-title">
     <header class="recover__header">
       <h1 id="recover-title" class="recover__title">Recupera tu contraseña</h1>
@@ -67,6 +68,7 @@
       </p>
     </nav>
   </section>
+  </div>
 </template>
 
 <script setup>
@@ -147,15 +149,24 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+
+.recover-shell{
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 4vw, 2rem);
+}
+
 .recover {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  width: min(420px, 100%);
-  padding: 2.5rem 2rem;
+  width: min(560px, 100%);
+  padding: 3rem 2.5rem;
   border-radius: 1.5rem;
   background: #ffffff;
   box-shadow: 0 20px 40px rgba(79, 70, 229, 0.1);
+  margin-inline: auto;
 }
 
 .recover__header {
@@ -168,12 +179,14 @@ const handleSubmit = async () => {
   font-size: 1.75rem;
   font-weight: 700;
   color: #1f2937;
+  text-align: center;
 }
 
 .recover__subtitle {
   margin: 0;
   color: #4b5563;
   font-size: 0.95rem;
+  text-align: center;
 }
 
 .recover__form {
@@ -195,7 +208,7 @@ const handleSubmit = async () => {
 
 .recover__input {
   display: block;
-  width: 100%;
+  width: auto;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
   border: 1px solid #c7d2fe;

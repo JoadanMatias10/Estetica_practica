@@ -89,7 +89,7 @@ const sanitizeEmailPayload = ({ to, subject, text, html, from }) => {
     throw new Error('El destinatario debe ser un correo electrónico válido.')
   }
 
-  const sanitized = {
+  const sanitized = { 
     to: toAddress.address,
     subject,
     text,

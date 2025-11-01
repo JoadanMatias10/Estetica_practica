@@ -40,7 +40,23 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Credenciales inválidas.' })
     }
 
-    if (usuario.twoFactorEnabled) {
+     let requireTwoFactor = usuario.twoFactorEnabled === true
+
+    if (!requireTwoFactor) {
+      requireTwoFactor = true
+
+      if (usuario.twoFactorEnabled !== true) {
+        usuario.twoFactorEnabled = true
+
+        await usuario
+          .save()
+          .catch((error) => {
+            console.error('No se pudo habilitar el segundo factor automáticamente para el usuario:', error)
+          })
+      }
+    }
+
+    if (requireTwoFactor) {
       const { code } = await createTwoFactorChallenge(usuario)
 
     const emailSent = await sendTwoFactorCodeEmail({

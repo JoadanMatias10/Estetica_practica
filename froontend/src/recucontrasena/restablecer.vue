@@ -1,4 +1,5 @@
 <template>
+ <div class="reset-shell">
   <section class="reset" aria-labelledby="reset-title">
     <header class="reset__header">
       <h1 id="reset-title" class="reset__title">Restablece tu contraseña</h1>
@@ -111,6 +112,7 @@
       </p>
     </nav>
   </section>
+</div>
 </template>
 
 <script setup>
@@ -275,12 +277,20 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+
+.reset-shell{
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;              /* centra vertical y horizontal */
+  padding: clamp(1rem, 4vw, 2rem);  /* respiro en bordes */
+}
+
 .reset {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  width: min(480px, 100%);
-  padding: 2.5rem 2rem;
+  width: min(560px, 100%);
+  padding: 3rem 2.25rem;
   border-radius: 1.5rem;
   background: #ffffff;
   box-shadow: 0 20px 40px rgba(79, 70, 229, 0.1);
@@ -296,12 +306,14 @@ const handleSubmit = async () => {
   font-size: 1.75rem;
   font-weight: 700;
   color: #1f2937;
+  text-align: center;
 }
 
 .reset__subtitle {
   margin: 0;
   color: #4b5563;
   font-size: 0.95rem;
+  text-align: center;
 }
 
 .reset__form {
@@ -323,7 +335,7 @@ const handleSubmit = async () => {
 
 .reset__input {
   display: block;
-  width: 100%;
+  width: auto;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
   border: 1px solid #c7d2fe;

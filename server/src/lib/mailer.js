@@ -31,4 +31,3 @@ export async function verifyMailer() {
 verifyMailer().catch((error) => {
   console.error('No se pudo verificar el transporter SMTP al iniciar:', error)
 })
-
