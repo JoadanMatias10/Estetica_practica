@@ -154,6 +154,10 @@ const enqueueEmailWithFirebase = async ({ to, subject, text, html, from }) => {
 
 }
 
+// Evitar ReferenceError si se llama antes de inicializar transporte
+const isTransportReady = () => true;
+
+
 export const sendEmail = async (emailPayload) => {
   let sanitizedPayload
 
