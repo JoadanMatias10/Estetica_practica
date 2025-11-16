@@ -1,9 +1,12 @@
-import { transporter } from '../lib/mailer.js'
+import { sendEmail } from './email/email.service.js'
+
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+const normalizeEmail = (value) => (typeof value === 'string' ? value.trim() : '')
+
 function ensureValidPayload({ to, token }) {
-  if (typeof to !== 'string' || !EMAIL_REGEX.test(to)) {
+  if (!EMAIL_REGEX.test(normalizeEmail(to))) {
     throw new Error('EMAIL_INVALID')
   }
 
@@ -15,15 +18,9 @@ function ensureValidPayload({ to, token }) {
 export async function sendEmailVerificationLink({ to, token }) {
   ensureValidPayload({ to, token })
 
-  const sender = process.env.SMTP_FROM || process.env.SMTP_USER
-
-  if (!sender) {
-    throw new Error('SMTP_FROM_REQUIRED')
-  }
-
-  if (process.env.SMTP_USER && sender !== process.env.SMTP_USER) {
-    throw new Error('SMTP_FROM_MISMATCH')
-  }
+  const sender = normalizeEmail(
+    process.env.EMAIL_DEFAULT_FROM || process.env.EMAIL_FROM || process.env.SMTP_FROM || ''
+  )
 
   const link = `https://proyecto2fa.web.app/verified?token=${encodeURIComponent(
     token,
@@ -40,16 +37,16 @@ export async function sendEmailVerificationLink({ to, token }) {
       <p style="margin:8px 0 0 0;color:#374151;word-break:break-all;">${link}</p>
     </div>
   `
+  const sent = await sendEmail({
+    from: sender || undefined,
+    to,
+    subject,
+    text,
+    html
+  })
 
-  try {
-    await transporter.sendMail({
-      from: sender,
-      to,
-      subject,
-      text,
-      html,
-    })
-  } catch (error) {
-    throw error
+  if (!sent) {
+    throw new Error('EMAIL_DELIVERY_FAILED')
   }
+
 }

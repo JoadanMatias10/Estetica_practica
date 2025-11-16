@@ -21,16 +21,9 @@ Sirve para autenticación con Google y para encolar correos si utilizas la exten
 - `FIREBASE_CLIENT_EMAIL`
 - `FIREBASE_PRIVATE_KEY`: respeta los saltos de línea con `\n` si la defines desde variables de entorno.
 
-### Envío directo con Gmail
-Si prefieres que los correos de recuperación lleguen desde Gmail sin depender de Firebase:
-1. Activa la verificación en dos pasos de tu cuenta de Google.
-2. Genera una [contraseña de aplicación](https://myaccount.google.com/apppasswords) para "Correo" y "Otro".
-3. Define las variables:
-   - `GMAIL_USER`: tu dirección de Gmail (por ejemplo, `mi.estetica@gmail.com`).
-   - `GMAIL_APP_PASSWORD`: la contraseña de aplicación generada en el paso anterior.
-4. (Opcional) `GMAIL_DEFAULT_FROM`: personaliza el nombre del remitente. Debe mantener el mismo correo que `GMAIL_USER` para evitar bloqueos.
-
-El servicio intentará primero encolar el correo en Firebase. Si no encuentra una configuración válida, enviará el mensaje usando Gmail y Nodemailer.
+### Envío de correos
+Actualmente los correos se encolan en Firestore para que la extensión **Trigger Email** los procese y envíe.
+Configura las credenciales de Firebase Admin para habilitar esta funcionalidad.
 
 ## Puesta en marcha
 

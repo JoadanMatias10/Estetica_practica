@@ -1,7 +1,5 @@
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { getFirebaseAuth } from '../../lib/firebase-admin.js'
-import { sendMailWithConfiguredTransport, isTransportReady } from './transporter.js'
-import { sendWithSmtp, isSmtpConfigured } from './smtp.transport.js'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const FIRESTORE_COLLECTION = process.env.FIREBASE_MAIL_COLLECTION || 'mail'
@@ -156,21 +154,7 @@ const enqueueEmailWithFirebase = async ({ to, subject, text, html, from }) => {
 
 }
 
-const registerDeliveryInFirestore = (payload, provider) => {
-  enqueueEmailWithFirebase(payload)
-    .then((enqueued) => {
-      if (!enqueued) {
-        console.warn(
-          `El correo se envió correctamente con ${provider}, pero no se pudo registrar en Firestore para seguimiento.`
-        )
-      }
-    })
-    .catch((error) => {
-      console.warn(`No se pudo registrar en Firestore el correo enviado con ${provider}:`, error)
-    })
-}
-
-const sendEmail = async (emailPayload) => {
+export const sendEmail = async (emailPayload) => {
   let sanitizedPayload
 
    try {
@@ -180,37 +164,19 @@ const sendEmail = async (emailPayload) => {
     return false
   }
 
-  const sentDirectly = await sendMailWithConfiguredTransport(sanitizedPayload)
-
-  if (sentDirectly) {
-    registerDeliveryInFirestore(sanitizedPayload, 'Nodemailer')
-    return true
-  }
-
-   const enqueued = await enqueueEmailWithFirebase(sanitizedPayload)
-
-  /*if (enqueued) {
-    registerDeliveryInFirestore(sanitizedPayload, 'Gmail')
-    return true
-  }*/
-  
-  //const enqueued = await enqueueEmailWithFirebase(sanitizedPayload)
-
-  if (enqueued) {
-    return true
-  }
+  const enqueued = await enqueueEmailWithFirebase(sanitizedPayload)
 
   if (!isTransportReady()) {
     console.warn(
       [
         'No se pudo enviar el correo porque no hay un proveedor configurado correctamente.',
-        'Configura un servidor SMTP o las variables GMAIL_USER y GMAIL_APP_PASSWORD,',
+        
         'o habilita Firebase Trigger Email.'
       ].join(' ')
     )
   }
 
-  return false
+  return  enqueued  
 }
 
 export const sendTwoFactorCodeEmail = async ({ to, code, nombre }) => {
@@ -277,7 +243,7 @@ export const sendPasswordResetEmail = async ({ to, token, nombre }) => {
 
   if (!emailQueued) {
     console.warn(
-      'No se pudo enviar el correo de recuperación de contraseña. Verifica la configuración de Firebase, SMTP o Gmail.'
+      'No se pudo enviar el correo de recuperación de contraseña. Verifica la configuración de Firebase o del proveedor externo.'
     )
   }
 
