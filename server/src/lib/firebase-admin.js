@@ -1,25 +1,33 @@
 import admin from 'firebase-admin'
 
 let firebaseAuth = null
-
 const sanitizePrivateKey = (key) => {
-  if (!key) return key
+  if (!key) return key;
 
- let sanitized = key.trim()
+  let sanitized = key.trim();
 
+  // Quitar coma final
   if (sanitized.endsWith(',')) {
-    sanitized = sanitized.slice(0, -1).trimEnd()
+    sanitized = sanitized.slice(0, -1).trimEnd();
   }
 
+  // Quitar comillas al inicio y al final
   if (
     (sanitized.startsWith('"') && sanitized.endsWith('"')) ||
     (sanitized.startsWith("'") && sanitized.endsWith("'"))
   ) {
-    sanitized = sanitized.slice(1, -1)
+    sanitized = sanitized.slice(1, -1);
   }
 
-  return sanitized.replace(/\\r?\\n/g, '\n')
-}
+  // Convertir '\n' (texto) en saltos de línea reales
+  sanitized = sanitized.replace(/\\n/g, '\n');
+
+  // Normalizar CRLF a solo '\n'
+  sanitized = sanitized.replace(/\r\n/g, '\n');
+
+  return sanitized;
+};
+
 
 const initializeFirebaseAdmin = () => {
   if (firebaseAuth) {
