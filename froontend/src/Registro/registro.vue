@@ -153,7 +153,6 @@
         </p>
       </div>
 
-  <!--
       <div class="registro__field">
         <label class="registro__label" for="rol">
           Rol <span class="registro__required" aria-hidden="true">*</span>
@@ -169,13 +168,12 @@
         >
           <option disabled value="">Selecciona un rol</option>
           <option value="cliente">Cliente</option>
-          <option value="admin">Administrador</option>
+        <!--  <option value="admin">Administrador</option>-->
         </select>
         <p v-if="errors.rol" class="registro__error" role="alert">
           {{ errors.rol }}
         </p>
       </div>*/
-    -->
 
       <div class="registro__agreements">
         <label class="registro__checkbox" for="terminos">
