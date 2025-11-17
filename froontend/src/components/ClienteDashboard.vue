@@ -21,6 +21,7 @@ const firstName = computed(() => {
   return firstWord || safeName.value
 })
 
+// Viejo catálogo destacado
 const productHighlights = [
   {
     title: 'Línea Capilar Premium',
@@ -42,6 +43,48 @@ const productHighlights = [
   },
 ]
 
+// NUEVO: líneas Avyna destacadas (panel superior)
+const productLines = [
+  {
+    name: 'Línea Avyna Nutri-Repair',
+    description:
+      'Champú vegano, mascarilla concentrada y sérum protector con aceite de marula y proteína de seda.',
+    badge: 'Top ventas',
+    price: 'Desde $480 MXN',
+  },
+  {
+    name: 'Colección Avyna Brillo Diamante',
+    description:
+      'Ritual iluminador que sella cutícula, controla frizz y aporta brillo espejo en un solo paso.',
+    badge: 'Novedad',
+    price: 'Ritual express 35 min',
+  },
+  {
+    name: 'Avyna Styling Pro',
+    description:
+      'Spray de acabado, crema de ondas suaves y cera mate para looks urbanos de larga duración.',
+    badge: 'Edición lounge',
+    price: 'Combo desde $520 MXN',
+  },
+]
+
+// NUEVO: experiencia en salón
+const experienceNotes = [
+  {
+    title: 'Estética Panamericana',
+    detail: 'Cabina sensorial con aromas cítricos, música downtempo y asesoría personalizada.',
+  },
+  {
+    title: 'Diagnóstico luminoso',
+    detail: 'Analizamos cuero cabelludo y fibra capilar para combinar la rutina Avyna ideal.',
+  },
+  {
+    title: 'Look & Shop',
+    detail: 'Prueba los productos en salón y llévate tu kit curado con beneficios de membresía.',
+  },
+]
+
+// Viejas especialidades de corte
 const cutSpecialties = [
   {
     name: 'Corte Contour Femenino',
@@ -57,111 +100,148 @@ const cutSpecialties = [
   },
 ]
 
+// NUEVO: rituales / servicios
+const rituals = [
+  {
+    title: 'Ritual Urban Glow',
+    text: 'Hidratación profunda + masaje relajante + plan de styling Avyna para tu siguiente evento.',
+  },
+  {
+    title: 'Corte de autor',
+    text: 'Técnicas precisas, contornos limpios y acabado fotográfico para tu día a día.',
+  },
+  {
+    title: 'Color Studio',
+    text: 'Balayage luminoso, matices fríos o cálidos y sellado con Brillo Diamante.',
+  },
+]
+
 const navigateToLogin = () => {
   emit('navigate', 'login')
 }
 </script>
 
 <template>
-  <section class="dashboard" aria-labelledby="dashboard-title">
-    <div class="dashboard__canvas">
-      <header class="dashboard__hero">
-        <div class="dashboard__brand" role="presentation">
-          <div class="dashboard__logo" aria-hidden="true">
-            <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img">
-              <defs>
-                <radialGradient id="logoGlow" cx="50%" cy="50%" r="65%">
-                  <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25" />
-                  <stop offset="100%" stop-color="#111827" stop-opacity="0.05" />
-                </radialGradient>
-              </defs>
-              <circle cx="60" cy="60" r="58" fill="url(#logoGlow)" />
-              <path
-                d="M61 91c17.4 0 31.5-14.1 31.5-31.5S78.4 28 61 28 29.5 42.1 29.5 59.5 43.6 91 61 91Zm-2.6-53.6c6.3 3.2 10.8 9.1 10.8 17 0 8.9-5.3 15.7-12.8 18.4 1.4-2.8 2.4-6.3 2.4-10.5 0-8.6-3.9-15.4-9.8-19.3 2.1-3.4 5.3-5.6 9.4-5.6Z"
-                fill="#1f2937"
-              />
-              <path
-                d="M51.3 41.7c5.6 4 9.3 10.5 9.3 18.7 0 5.2-1.4 9.6-3.5 12.9-1.3 2-3.5 4-5.9 5-5.9-3.8-9.9-10.4-9.9-18.8 0-6.8 2.9-12.6 7.5-16.4 0.8-0.6 1.7-1 2.5-1.4Z"
-                fill="#374151"
-                opacity="0.85"
-              />
-            </svg>
-          </div>
-          <div class="dashboard__brand-text">
-            <span class="dashboard__brand-title">Panamericana</span>
-            <span class="dashboard__brand-subtitle">Estética</span>
-          </div>
-        </div>
+  <section class="home" aria-labelledby="home-title">
+    <div class="home__shell">
+      <!-- HERO PRINCIPAL -->
+      <header class="hero">
+        <div class="hero__badge">Estética Panamericana · Avyna</div>
+        <p class="hero__eyebrow">Bienvenida, {{ safeName }}</p>
 
-        <div class="dashboard__welcome">
-          <p class="dashboard__eyebrow">Bienvenido de nuevo</p>
-          <h1 id="dashboard-title" class="dashboard__title">
-            {{ safeName }}
-          </h1>
-          <p class="dashboard__subtitle">
-            Diseñamos experiencias de belleza personalizadas para resaltar tu esencia. Explora el catálogo
-            curado para ti y agenda tu próxima visita.
+        <div class="hero__headline">
+          <h1 id="home-title">Un Home pensado para tu glow urbano</h1>
+          <p>
+            Experiencias de belleza sensorial, productos Avyna curados y un espacio para descubrir tu mejor
+            versión.
           </p>
         </div>
 
-        <div class="dashboard__cta">
-          <button class="dashboard__button" type="button">Ver agenda disponible</button>
-          <button class="dashboard__button dashboard__button--outline" type="button" @click="navigateToLogin">
+        <div class="hero__actions">
+          <button class="button button--primary" type="button">Agendar mi ritual</button>
+          <button class="button button--ghost" type="button" @click="navigateToLogin">
             Cerrar sesión
           </button>
         </div>
+
+        <!-- Panel Avyna -->
+        <div class="hero__panel" aria-label="Selección destacada Avyna">
+          <div class="hero__panel-title">Selección Avyna</div>
+          <div class="hero__panel-grid">
+            <div v-for="item in productLines" :key="item.name" class="hero__panel-card">
+              <span class="tag">{{ item.badge }}</span>
+              <h3>{{ item.name }}</h3>
+              <p>{{ item.description }}</p>
+              <span class="price">{{ item.price }}</span>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <section class="dashboard__section" aria-labelledby="catalogo-title">
-        <header class="dashboard__section-header">
-          <h2 id="catalogo-title" class="dashboard__section-title">Catálogo destacado</h2>
-          <p class="dashboard__section-subtitle">
-            Selección premium inspirada en la estética urbana de Panamericana.
-          </p>
-        </header>
+      <!-- CATÁLOGO DESTACADO (antes dashboard__section) -->
+      <section class="section" aria-labelledby="catalogo-title">
+        <div class="section__header">
+          <h2 id="catalogo-title">Catálogo destacado</h2>
+          <p>Selección premium inspirada en la estética urbana de Panamericana.</p>
+        </div>
 
-        <div class="dashboard__cards">
+        <div class="grid">
           <article
             v-for="item in productHighlights"
             :key="item.title"
-            class="dashboard__card"
+            class="card"
             aria-label="Vista previa de catálogo"
           >
-            <span class="dashboard__card-badge">{{ item.badge }}</span>
-            <h3 class="dashboard__card-title">{{ item.title }}</h3>
-            <p class="dashboard__card-description">{{ item.description }}</p>
-            <button class="dashboard__card-action" type="button">Explorar colección</button>
+            <span class="tag">{{ item.badge }}</span>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.description }}</p>
+            <button class="link" type="button">Explorar colección</button>
           </article>
         </div>
       </section>
 
-      <section class="dashboard__section dashboard__section--accent" aria-labelledby="cortes-title">
-        <header class="dashboard__section-header">
-          <h2 id="cortes-title" class="dashboard__section-title">Especialidades en cortes</h2>
-          <p class="dashboard__section-subtitle">
-            Técnicas insignia diseñadas para realzar tus facciones y estilo.
-          </p>
-        </header>
+      <!-- EXPERIENCIA EN SALÓN -->
+      <section class="section" aria-labelledby="section-experiencia">
+        <div class="section__header">
+          <h2 id="section-experiencia">Home Estética Panamericana</h2>
+          <p>Servicios, ambientación sensorial y venta de productos Avyna en un solo lugar.</p>
+        </div>
 
-        <ul class="dashboard__list">
-          <li v-for="specialty in cutSpecialties" :key="specialty.name" class="dashboard__list-item">
-            <div class="dashboard__list-marker" aria-hidden="true"></div>
-            <div class="dashboard__list-content">
-              <h3 class="dashboard__list-title">{{ specialty.name }}</h3>
-              <p class="dashboard__list-description">{{ specialty.detail }}</p>
+        <div class="grid">
+          <article v-for="note in experienceNotes" :key="note.title" class="card">
+            <h3>{{ note.title }}</h3>
+            <p>{{ note.detail }}</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ESPECIALIDADES EN CORTES -->
+      <section class="section section--accent" aria-labelledby="cortes-title">
+        <div class="section__header">
+          <h2 id="cortes-title">Especialidades en cortes</h2>
+          <p>Técnicas insignia diseñadas para realzar tus facciones y estilo.</p>
+        </div>
+
+        <ul class="cuts-list">
+          <li v-for="specialty in cutSpecialties" :key="specialty.name" class="cuts-list__item">
+            <div class="cuts-list__marker" aria-hidden="true"></div>
+            <div class="cuts-list__content">
+              <h3 class="cuts-list__title">{{ specialty.name }}</h3>
+              <p class="cuts-list__description">{{ specialty.detail }}</p>
             </div>
           </li>
         </ul>
       </section>
 
-      <footer class="dashboard__footer" aria-label="Sugerencias personalizadas">
-        <div class="dashboard__footer-card">
-          <h2 class="dashboard__footer-title">Hola, {{ firstName }}</h2>
-          <p class="dashboard__footer-text">
-            Próximamente verás aquí recomendaciones inteligentes basadas en tu historial y mood del día. ¡Estamos
-            preparando algo especial para tu próxima cita!
+      <!-- RITUALES / SERVICIOS -->
+      <section class="section section--accent" aria-labelledby="section-rituales">
+        <div class="section__header">
+          <h2 id="section-rituales">Rituales y servicios</h2>
+          <p>Agenda, compra tus productos Avyna y disfruta una experiencia boutique.</p>
+        </div>
+
+        <div class="grid grid--compact">
+          <article v-for="ritual in rituals" :key="ritual.title" class="card card--glass">
+            <h3>{{ ritual.title }}</h3>
+            <p>{{ ritual.text }}</p>
+            <button class="link" type="button">Ver detalles</button>
+          </article>
+        </div>
+      </section>
+
+      <!-- CTA FINAL / RECOMENDACIONES -->
+      <footer class="cta" aria-label="Asesoría personalizada">
+        <div>
+          <p class="cta__eyebrow">Hola, {{ firstName }}</p>
+          <h2>Hagamos tu kit Avyna a medida</h2>
+          <p>
+            Te preparamos una rutina exclusiva según tu mood, agenda y estilo de vida. Descubre las ventajas de
+            Estética Panamericana con envíos rápidos y citas prioritarias.
           </p>
-          <button class="dashboard__footer-button" type="button">Solicitar asesoría personalizada</button>
+        </div>
+        <div class="cta__actions">
+          <button class="button button--primary" type="button">Solicitar asesoría</button>
+          <button class="button button--ghost" type="button">Conocer membresía</button>
         </div>
       </footer>
     </div>
@@ -169,13 +249,13 @@ const navigateToLogin = () => {
 </template>
 
 <style scoped>
-.dashboard {
-  width: min(100%, 1100px);
+.home {
+  width: min(1200px, 100%);
   margin: 0 auto;
   padding: clamp(1.5rem, 3vw, 2.5rem);
 }
 
-.dashboard__canvas {
+.home__shell {
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
@@ -186,215 +266,237 @@ const navigateToLogin = () => {
   backdrop-filter: blur(6px);
 }
 
-.dashboard__hero {
-  display: grid;
-  gap: clamp(1.75rem, 3vw, 2.5rem);
-  background: radial-gradient(circle at top right, rgba(79, 70, 229, 0.18), transparent 65%);
-  padding: clamp(1.75rem, 4vw, 3rem);
-  border-radius: 28px;
+/* HERO */
+.hero {
   position: relative;
   overflow: hidden;
+  background: radialGradient(circle at 20% 20%, rgba(99, 102, 241, 0.28), transparent 45%),
+    radialGradient(circle at 75% 20%, rgba(16, 185, 129, 0.25), transparent 45%),
+    linear-gradient(135deg, #0f172a, #111827 35%, #0b1222 80%);
+  background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.28), transparent 45%),
+    radial-gradient(circle at 75% 20%, rgba(16, 185, 129, 0.25), transparent 45%),
+    linear-gradient(135deg, #0f172a, #111827 35%, #0b1222 80%);
+  color: #f8fafc;
+  padding: clamp(1.75rem, 4vw, 3rem);
+  border-radius: 32px;
+  box-shadow: 0 35px 70px -55px rgba(15, 23, 42, 0.75);
+  display: grid;
+  gap: 1.5rem;
 }
 
-.dashboard__hero::after {
+.hero::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(17, 24, 39, 0.25), transparent 65%);
-  opacity: 0.35;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.08), transparent 70%);
   pointer-events: none;
 }
 
-.dashboard__brand {
+.hero__badge {
   display: inline-flex;
   align-items: center;
+  gap: 0.75rem;
+  position: relative;
+  z-index: 1;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.66);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hero__eyebrow {
+  margin: 0.8rem 0 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.16em;
+  color: rgba(248, 250, 252, 0.75);
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+}
+
+.hero__headline {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.85rem;
+  max-width: 640px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero__headline h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 5vw, 3.2rem);
+  letter-spacing: -0.02em;
+}
+
+.hero__headline p {
+  margin: 0;
+  font-size: clamp(1rem, 2.4vw, 1.1rem);
+  line-height: 1.6;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.25rem 0 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Panel Avyna */
+.hero__panel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 1.25rem;
+  display: grid;
   gap: 1rem;
   position: relative;
   z-index: 1;
 }
 
-.dashboard__logo {
-  width: clamp(72px, 10vw, 108px);
-  height: clamp(72px, 10vw, 108px);
-  display: grid;
-  place-items: center;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.75), rgba(229, 231, 235, 0.25));
-  border-radius: 50%;
-  box-shadow: 0 20px 45px -30px rgba(17, 24, 39, 0.8);
-}
-
-.dashboard__brand-text {
-  display: grid;
-  gap: 0.25rem;
-  text-transform: uppercase;
-  letter-spacing: 0.28em;
-  color: #111827;
-}
-
-.dashboard__brand-title {
-  font-size: clamp(0.85rem, 1vw, 1rem);
+.hero__panel-title {
   font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #e0e7ff;
+  text-transform: uppercase;
+  font-size: 0.8rem;
 }
 
-.dashboard__brand-subtitle {
-  font-size: clamp(0.75rem, 0.9vw, 0.95rem);
-  font-weight: 500;
-  letter-spacing: 0.42em;
+.hero__panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
 }
 
-.dashboard__welcome {
-  position: relative;
-  z-index: 1;
-  max-width: 540px;
-  color: #0f172a;
+.hero__panel-card {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.dashboard__eyebrow {
+.hero__panel-card h3 {
   margin: 0;
-  font-size: 0.85rem;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  color: rgba(15, 23, 42, 0.6);
-}
-
-.dashboard__title {
-  margin: 0.5rem 0 0;
-  font-size: clamp(2.1rem, 5vw, 3rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.dashboard__subtitle {
-  margin: 1rem 0 0;
-  font-size: clamp(1rem, 2.2vw, 1.15rem);
-  line-height: 1.6;
-  color: rgba(15, 23, 42, 0.74);
-}
-
-.dashboard__cta {
-  display: inline-flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  position: relative;
-  z-index: 1;
-}
-
-.dashboard__button {
-  appearance: none;
-  border: none;
-  border-radius: 999px;
-  padding: 0.85rem 1.6rem;
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #ffffff;
-  background: linear-gradient(135deg, #4338ca, #6366f1);
-  box-shadow: 0 18px 35px -22px rgba(79, 70, 229, 0.9);
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-}
-
-.dashboard__button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 26px 48px -28px rgba(79, 70, 229, 0.95);
-}
-
-.dashboard__button:focus-visible {
-  outline: 3px solid rgba(99, 102, 241, 0.35);
-  outline-offset: 2px;
-}
-
-.dashboard__button--outline {
-  color: #1f2937;
-  background: rgba(255, 255, 255, 0.75);
-  box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.35);
-}
-
-.dashboard__button--outline:hover {
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.dashboard__section {
-  display: grid;
-  gap: 1.75rem;
-  background: rgba(255, 255, 255, 0.9);
-  padding: clamp(1.5rem, 3vw, 2.25rem);
-  border-radius: 26px;
-  box-shadow: 0 20px 45px -40px rgba(15, 23, 42, 0.35);
-}
-
-.dashboard__section--accent {
-  background: linear-gradient(155deg, rgba(15, 23, 42, 0.92), rgba(30, 64, 175, 0.65));
+  font-size: 1.05rem;
   color: #f8fafc;
-  box-shadow: 0 35px 65px -45px rgba(15, 23, 42, 0.65);
 }
 
-.dashboard__section-header {
+.hero__panel-card p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.78);
+  line-height: 1.5;
+}
+
+/* Chips / precio */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.18);
+  color: #a7f3d0;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.price {
+  color: #c7d2fe;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Secciones genéricas */
+.section {
   display: grid;
-  gap: 0.65rem;
+  gap: 1.5rem;
+  background: linear-gradient(135deg, #f8fafc, #eef2ff);
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 28px 60px -48px rgba(15, 23, 42, 0.4);
 }
 
-.dashboard__section-title {
+.section--accent {
+  background: linear-gradient(140deg, #111827, #0f172a 60%, #1f2937);
+  color: #e5e7eb;
+}
+
+.section__header h2 {
   margin: 0;
-  font-size: clamp(1.4rem, 3vw, 1.75rem);
-  letter-spacing: -0.01em;
+  font-size: clamp(1.6rem, 3vw, 1.9rem);
 }
 
-.dashboard__section-subtitle {
-  margin: 0;
-  font-size: clamp(0.95rem, 2.2vw, 1.05rem);
-  color: rgba(15, 23, 42, 0.65);
+.section__header p {
+  margin: 0.35rem 0 0;
+  color: rgba(15, 23, 42, 0.7);
 }
 
-.dashboard__section--accent .dashboard__section-subtitle {
-  color: rgba(248, 250, 252, 0.75);
+.section--accent .section__header p {
+  color: rgba(229, 231, 235, 0.8);
 }
 
-.dashboard__cards {
+/* Grid / cards */
+.grid {
   display: grid;
   gap: 1.5rem;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
-.dashboard__card {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-radius: 22px;
-  background: linear-gradient(145deg, #f9fafb, #f3f4f6);
+.grid--compact {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 1.25rem;
   border: 1px solid rgba(148, 163, 184, 0.25);
-  box-shadow: 0 18px 35px -28px rgba(15, 23, 42, 0.4);
+  box-shadow: 0 18px 40px -32px rgba(15, 23, 42, 0.35);
+  display: grid;
+  gap: 0.4rem;
 }
 
-.dashboard__card-badge {
-  align-self: flex-start;
-  padding: 0.4rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #4338ca;
-  background: rgba(79, 70, 229, 0.12);
-}
-
-.dashboard__card-title {
+.card h3 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: #0f172a;
 }
 
-.dashboard__card-description {
+.card p {
   margin: 0;
   font-size: 0.95rem;
-  line-height: 1.55;
   color: rgba(15, 23, 42, 0.7);
+  line-height: 1.55;
 }
 
-.dashboard__card-action {
-  justify-self: flex-start;
+.section--accent .card {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(55, 65, 81, 0.8);
+}
+
+.section--accent .card h3,
+.section--accent .card p {
+  color: #e5e7eb;
+}
+
+.card--glass {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Links / botones */
+.link {
   border: none;
   background: none;
   color: #4338ca;
@@ -406,11 +508,39 @@ const navigateToLogin = () => {
   padding: 0;
 }
 
-.dashboard__card-action:hover {
-  text-decoration: underline;
+.section--accent .link {
+  color: #a5b4fc;
 }
 
-.dashboard__list {
+.button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.9rem 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.button--primary {
+  background: linear-gradient(135deg, #22c55e, #10b981);
+  color: #041214;
+  box-shadow: 0 24px 50px -26px rgba(16, 185, 129, 0.7);
+}
+
+.button--ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.button:hover {
+  transform: translateY(-2px);
+}
+
+/* Lista de cortes */
+.cuts-list {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -418,14 +548,14 @@ const navigateToLogin = () => {
   gap: 1.4rem;
 }
 
-.dashboard__list-item {
+.cuts-list__item {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 1rem;
   align-items: flex-start;
 }
 
-.dashboard__list-marker {
+.cuts-list__marker {
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -434,92 +564,84 @@ const navigateToLogin = () => {
   margin-top: 0.35rem;
 }
 
-.dashboard__list-title {
+.cuts-list__title {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 600;
 }
 
-.dashboard__list-description {
+.cuts-list__description {
   margin: 0.35rem 0 0;
   font-size: 0.95rem;
   line-height: 1.55;
   color: rgba(248, 250, 252, 0.8);
 }
 
-.dashboard__footer {
-  display: grid;
-}
-
-.dashboard__footer-card {
-  padding: clamp(1.75rem, 3vw, 2.5rem);
-  border-radius: 24px;
-  background: linear-gradient(140deg, rgba(99, 102, 241, 0.28), rgba(59, 130, 246, 0.25));
-  color: #0f172a;
+/* CTA final */
+.cta {
   display: grid;
   gap: 1rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border-radius: 26px;
+  background: linear-gradient(135deg, #ecfeff, #eef2ff);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  align-items: center;
+  box-shadow: 0 28px 50px -42px rgba(15, 23, 42, 0.4);
 }
 
-.dashboard__footer-title {
-  margin: 0;
-  font-size: clamp(1.35rem, 2.6vw, 1.65rem);
-  font-weight: 700;
-}
-
-.dashboard__footer-text {
-  margin: 0;
-  font-size: clamp(0.95rem, 2.1vw, 1.05rem);
-  line-height: 1.6;
-  color: rgba(15, 23, 42, 0.75);
-}
-
-.dashboard__footer-button {
-  justify-self: flex-start;
-  border: none;
-  border-radius: 999px;
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
+.cta__eyebrow {
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #ffffff;
-  background: linear-gradient(135deg, #4338ca, #6366f1);
-  cursor: pointer;
-  box-shadow: 0 16px 35px -26px rgba(79, 70, 229, 0.85);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  letter-spacing: 0.12em;
+  color: #16a34a;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
 }
 
-.dashboard__footer-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 24px 45px -28px rgba(79, 70, 229, 0.9);
+.cta h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: #0f172a;
 }
 
-@media (max-width: 768px) {
-  .dashboard__hero {
-    padding: clamp(1.5rem, 4vw, 2.5rem);
+.cta p {
+  margin: 0.35rem 0 0;
+  color: rgba(15, 23, 42, 0.75);
+  line-height: 1.6;
+}
+
+.cta__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Responsivo */
+@media (max-width: 720px) {
+  .hero,
+  .section,
+  .cta {
+    padding: 1.25rem;
   }
 
-  .dashboard__cta {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .dashboard__cards {
+  .hero__panel-grid,
+  .grid,
+  .grid--compact {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
-}
 
-@media (max-width: 560px) {
-  .dashboard__logo {
-    width: 72px;
-    height: 72px;
+  .home {
+    padding: 1.25rem;
   }
 
-  .dashboard__brand {
-    justify-content: center;
+  .hero__actions,
+  .cta__actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .dashboard__cta {
-    justify-content: center;
+  .button {
+    width: 100%;
+    text-align: center;
   }
 }
 </style>
