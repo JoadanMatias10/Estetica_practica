@@ -21,7 +21,7 @@ const firstName = computed(() => {
   return firstWord || safeName.value
 })
 
-// Viejo catálogo destacado
+// Catálogo destacado
 const productHighlights = [
   {
     title: 'Línea Capilar Premium',
@@ -43,7 +43,7 @@ const productHighlights = [
   },
 ]
 
-// NUEVO: líneas Avyna destacadas (panel superior)
+// Líneas Avyna (panel hero)
 const productLines = [
   {
     name: 'Línea Avyna Nutri-Repair',
@@ -68,7 +68,7 @@ const productLines = [
   },
 ]
 
-// NUEVO: experiencia en salón
+// Experiencia en salón
 const experienceNotes = [
   {
     title: 'Estética Panamericana',
@@ -84,7 +84,7 @@ const experienceNotes = [
   },
 ]
 
-// Viejas especialidades de corte
+// Especialidades en cortes
 const cutSpecialties = [
   {
     name: 'Corte Contour Femenino',
@@ -100,7 +100,7 @@ const cutSpecialties = [
   },
 ]
 
-// NUEVO: rituales / servicios
+// Rituales / servicios
 const rituals = [
   {
     title: 'Ritual Urban Glow',
@@ -158,7 +158,7 @@ const navigateToLogin = () => {
         </div>
       </header>
 
-      <!-- CATÁLOGO DESTACADO (antes dashboard__section) -->
+      <!-- CATÁLOGO DESTACADO -->
       <section class="section" aria-labelledby="catalogo-title">
         <div class="section__header">
           <h2 id="catalogo-title">Catálogo destacado</h2>
@@ -230,7 +230,7 @@ const navigateToLogin = () => {
       </section>
 
       <!-- CTA FINAL / RECOMENDACIONES -->
-      <footer class="cta" aria-label="Asesoría personalizada">
+      <section class="cta" aria-label="Asesoría personalizada">
         <div>
           <p class="cta__eyebrow">Hola, {{ firstName }}</p>
           <h2>Hagamos tu kit Avyna a medida</h2>
@@ -243,36 +243,62 @@ const navigateToLogin = () => {
           <button class="button button--primary" type="button">Solicitar asesoría</button>
           <button class="button button--ghost" type="button">Conocer membresía</button>
         </div>
-      </footer>
+      </section>
     </div>
+
+    <!-- FOOTER COMPLETO -->
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        <div class="site-footer__brand">
+          <span class="site-footer__logo-circle">EP</span>
+          <div>
+            <p class="site-footer__title">Estética Panamericana</p>
+            <p class="site-footer__subtitle">Glow urbano · Cuidado profesional</p>
+          </div>
+        </div>
+
+        <nav class="site-footer__nav">
+          <a href="#" class="site-footer__link">Servicios</a>
+          <a href="#" class="site-footer__link">Productos Avyna</a>
+          <a href="#" class="site-footer__link">Agenda</a>
+          <a href="#" class="site-footer__link">Contacto</a>
+        </nav>
+
+        <p class="site-footer__copy">
+          © {{ new Date().getFullYear() }} Estética Panamericana. Todos los derechos reservados.
+        </p>
+      </div>
+    </footer>
   </section>
 </template>
 
 <style scoped>
-.home {
-  width: min(1200px, 100%);
-  margin: 0 auto;
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+:root {
+  --page-bg: radial-gradient(circle at 0 0, #111827, #020617 55%);
 }
 
+/* Layout general: pantalla completa */
+.home {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--page-bg);
+}
+
+/* Contenido principal */
 .home__shell {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(229, 231, 235, 0.78));
-  border-radius: 32px;
-  box-shadow: 0 45px 85px -60px rgba(15, 23, 42, 0.6);
-  padding: clamp(1.75rem, 3vw, 2.75rem);
-  backdrop-filter: blur(6px);
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1.8rem, 5vw, 4rem);
 }
 
 /* HERO */
 .hero {
   position: relative;
   overflow: hidden;
-  background: radialGradient(circle at 20% 20%, rgba(99, 102, 241, 0.28), transparent 45%),
-    radialGradient(circle at 75% 20%, rgba(16, 185, 129, 0.25), transparent 45%),
-    linear-gradient(135deg, #0f172a, #111827 35%, #0b1222 80%);
   background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.28), transparent 45%),
     radial-gradient(circle at 75% 20%, rgba(16, 185, 129, 0.25), transparent 45%),
     linear-gradient(135deg, #0f172a, #111827 35%, #0b1222 80%);
@@ -615,6 +641,71 @@ const navigateToLogin = () => {
   flex-wrap: wrap;
 }
 
+/* FOOTER */
+.site-footer {
+  border-top: 1px solid rgba(15, 23, 42, 0.8);
+  background: #020617;
+  color: #e5e7eb;
+  padding: 1.5rem clamp(1.8rem, 5vw, 4rem);
+}
+
+.site-footer__inner {
+  display: grid;
+  gap: 1rem;
+}
+
+.site-footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.site-footer__logo-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #6366f1, #22c55e);
+  color: #0b1120;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+}
+
+.site-footer__title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.site-footer__subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.site-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.site-footer__link {
+  font-size: 0.9rem;
+  color: rgba(209, 213, 219, 0.9);
+  text-decoration: none;
+}
+
+.site-footer__link:hover {
+  text-decoration: underline;
+}
+
+.site-footer__copy {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(148, 163, 184, 0.85);
+}
+
 /* Responsivo */
 @media (max-width: 720px) {
   .hero,
@@ -629,8 +720,8 @@ const navigateToLogin = () => {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 
-  .home {
-    padding: 1.25rem;
+  .home__shell {
+    padding: 1.25rem 1.25rem 1.75rem;
   }
 
   .hero__actions,
@@ -642,6 +733,10 @@ const navigateToLogin = () => {
   .button {
     width: 100%;
     text-align: center;
+  }
+
+  .site-footer__inner {
+    gap: 0.75rem;
   }
 }
 </style>
