@@ -173,7 +173,7 @@
         <p v-if="errors.rol" class="registro__error" role="alert">
           {{ errors.rol }}
         </p>
-      </div>*/
+      </div>
 
       <div class="registro__agreements">
         <label class="registro__checkbox" for="terminos">
