@@ -29,24 +29,28 @@ const haircuts = [
     description: 'Estilo atrevido y sofisticado con capas texturizadas',
     price: '$350',
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    image: new URL('@/img/pixie.jpg', import.meta.url).href,
   },
   {
     name: 'Bob Asimétrico',
     description: 'Elegancia contemporánea con líneas definidas',
     price: '$380',
     gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    image: new URL('@/img/Bob.jpg', import.meta.url).href,
   },
   {
     name: 'Fade Ejecutivo',
     description: 'Degradado perfecto para el profesional moderno',
     price: '$280',
     gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    image: new URL('@/img/recto.jpg', import.meta.url).href,
   },
   {
     name: 'Capas Largas',
     description: 'Movimiento natural con volumen equilibrado',
     price: '$420',
     gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    image: new URL('@/img/capa.jpg', import.meta.url).href,
   },
 ]
 
