@@ -1,8 +1,5 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router' // 👈 NUEVO
-
-const router = useRouter() // 👈 NUEVO
 
 const props = defineProps({
   userName: {
@@ -113,10 +110,6 @@ const services = [
   },
 ]
 
-const navigateToLogin = () => {
-  emit('navigate', 'login')
-}
-
 // BOTÓN DE CERRAR SESIÓN (funcional)
 const logout = () => {
   // Limpia lo que uses para sesión
@@ -125,7 +118,7 @@ const logout = () => {
   localStorage.removeItem('role')
 
   // Redirige al login (ajusta la ruta si es otra)
-  router.push('/login')
+  emit('navigate', 'login')
 }
 </script>
 
@@ -162,9 +155,8 @@ const logout = () => {
             Cerrar sesión
           </button>
 
-          <button class="navbar__btn navbar__btn--primary" type="button" @click="navigateToLogin">
-            {{ firstName }}
-          </button>
+          <button class="navbar__btn navbar__btn--primary" type="button">{{ firstName }}</button>
+          
         </div>
       </div>
     </nav>
