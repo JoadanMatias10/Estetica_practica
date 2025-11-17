@@ -109,6 +109,11 @@ const services = [
 const navigateToLogin = () => {
   emit('navigate', 'login')
 }
+
+// NUEVO: botón de cerrar sesión
+const logout = () => {
+  emit('navigate', 'logout')
+}
 </script>
 
 <template>
@@ -135,7 +140,15 @@ const navigateToLogin = () => {
         </div>
 
         <div class="navbar__actions">
-          <button class="navbar__btn navbar__btn--outline" type="button">Agendar Cita</button>
+          <button class="navbar__btn navbar__btn--outline" type="button">
+            Agendar Cita
+          </button>
+
+          <!-- NUEVO BOTÓN CERRAR SESIÓN -->
+          <button class="navbar__btn navbar__btn--outline" type="button" @click="logout">
+            Cerrar sesión
+          </button>
+
           <button class="navbar__btn navbar__btn--primary" type="button" @click="navigateToLogin">
             {{ firstName }}
           </button>
