@@ -1,5 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router' // 👈 NUEVO
+
+const router = useRouter() // 👈 NUEVO
 
 const props = defineProps({
   userName: {
@@ -114,9 +117,15 @@ const navigateToLogin = () => {
   emit('navigate', 'login')
 }
 
-// NUEVO: botón de cerrar sesión
+// BOTÓN DE CERRAR SESIÓN (funcional)
 const logout = () => {
-  emit('navigate', 'logout')
+  // Limpia lo que uses para sesión
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  localStorage.removeItem('role')
+
+  // Redirige al login (ajusta la ruta si es otra)
+  router.push('/login')
 }
 </script>
 
@@ -148,7 +157,7 @@ const logout = () => {
             Agendar Cita
           </button>
 
-          <!-- NUEVO BOTÓN CERRAR SESIÓN -->
+          <!-- BOTÓN CERRAR SESIÓN -->
           <button class="navbar__btn navbar__btn--outline" type="button" @click="logout">
             Cerrar sesión
           </button>
@@ -194,6 +203,8 @@ const logout = () => {
         <div class="haircuts">
           <article v-for="cut in haircuts" :key="cut.name" class="haircut-card">
             <div class="haircut-card__image" :style="{ background: cut.gradient }">
+              <!-- Si luego quieres mostrar la foto, aquí va el <img> -->
+              <!-- <img :src="cut.image" :alt="cut.name" class="haircut-card__img" /> -->
               <div class="haircut-card__overlay"></div>
             </div>
             <div class="haircut-card__content">

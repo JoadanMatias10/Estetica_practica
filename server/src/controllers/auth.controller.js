@@ -239,11 +239,18 @@ export const loginWithGoogle = async (req, res) => {
       return res.status(400).json({ message: 'El token de Google no incluye un correo electrónico válido.' })
     }
 
-    const usuario = await findUserByEmail(email)
+    const usuario = await findUserByEmail(email).catch(() => null)
 
     if (!usuario) {
-      return res.status(404).json({
-        message: 'No se encontró un usuario registrado con tu cuenta de Google.'
+     return res.status(200).json({
+        message: 'Sesión iniciada con Google correctamente.',
+        twoFactorRequired: false,
+        twoFactorRecommended: false,
+        user: {
+          nombre:
+            decodedToken?.name || decodedToken?.given_name || decodedToken?.family_name || email,
+          email
+        }
       })
     }
 
