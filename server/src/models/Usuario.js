@@ -73,7 +73,23 @@ const usuarioSchema = new mongoose.Schema(
       expiresAt: {
         type: Date
       }
-     }
+   },
+    loginAttempts: {
+      count: {
+        type: Number,
+        default: 0
+      },
+      lastAttempt: {
+        type: Date
+      },
+      lockUntil: {
+        type: Date
+      }
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0
+    }
   },
   {
     timestamps: true

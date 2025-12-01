@@ -5,6 +5,8 @@ import {
   recoverPassword,
   resetPassword,
   loginWithGoogle,
+   refreshSession,
+  logout
 } from '../controllers/auth.controller.js'
 
 
@@ -15,5 +17,7 @@ router.post('/verify', verifyTwoFactor)
 router.post('/recover', recoverPassword)
 router.post('/reset', resetPassword)
 router.post('/google', loginWithGoogle)
+router.post('/refresh', refreshSession)
+router.post('/logout', logout)
 
 export default router
