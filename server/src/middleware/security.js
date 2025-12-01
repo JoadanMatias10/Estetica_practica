@@ -114,3 +114,19 @@ export const authRateLimitConfig = {
   max: { name: 'AUTH_RATE_LIMIT_MAX', value: 10 },
   message: 'Has excedido los intentos de autenticación. Espera unos minutos antes de reintentar.'
 }
+
+export const recoverRateLimitConfig = {
+  windowMs: { name: 'RECOVER_RATE_LIMIT_WINDOW_MS', value: 15 * 60 * 1000 },
+  max: { name: 'RECOVER_RATE_LIMIT_MAX', value: 3 },
+  message:
+    'Has solicitado demasiadas recuperaciones recientemente. Espera unos minutos antes de intentarlo de nuevo.',
+  keyGenerator: (req) => {
+    const email = req.body?.email
+
+    if (email && typeof email === 'string' && email.trim()) {
+      return `${email.trim().toLowerCase()}|${req.ip || 'unknown'}`
+    }
+
+    return req.ip
+  }
+}

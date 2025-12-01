@@ -12,13 +12,13 @@ import {
   createPasswordResetChallenge,
   clearPasswordResetChallenge,
   updateUserPassword,
-  validatePasswordResetChallenge,
+  validatePasswordResetChallenge
 } from '../services/password-reset/password-reset.service.js'
 import {
   validateLoginPayload,
   validateTwoFactorPayload,
   validateRecoverPayload,
-  validateResetPasswordPayload,
+  validateResetPasswordPayload
 } from '../validators/auth.validator.js'
 
 export const login = async (req, res) => {
@@ -55,11 +55,9 @@ export const login = async (req, res) => {
       if (usuario.twoFactorEnabled !== true) {
         usuario.twoFactorEnabled = true
 
-        await usuario
-          .save()
-          .catch((error) => {
-            console.error('No se pudo habilitar el segundo factor automáticamente para el usuario:', error)
-          })
+        await usuario.save().catch((error) => {
+          console.error('No se pudo habilitar el segundo factor automáticamente para el usuario:', error)
+        })
       }
     }
 

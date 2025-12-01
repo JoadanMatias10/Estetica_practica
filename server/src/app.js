@@ -11,6 +11,7 @@ import {
   corsOptions,
   createRateLimiter,
   enforceHttps,
+  recoverRateLimitConfig,
   globalRateLimitConfig,
   shouldTrustProxy
 } from './middleware/security.js'
@@ -25,6 +26,7 @@ if (shouldTrustProxy) {
 const corsMiddleware = cors(corsOptions)
 const globalLimiter = createRateLimiter(globalRateLimitConfig)
 const authLimiter = createRateLimiter(authRateLimitConfig)
+const recoverLimiter = createRateLimiter(recoverRateLimitConfig)
 
 app.use(enforceHttps)
 app.use(applySecurityHeaders)
@@ -46,6 +48,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Servidor funcionando correctamente 🚀' })
 })
 
+app.use('/api/auth/recover', recoverLimiter)
 app.use('/api/auth', authLimiter)
 app.use('/api/registro', registroRoutes)
 app.use(sendVerificationRoutes)
