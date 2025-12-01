@@ -3,7 +3,7 @@ import { getFirebaseAuth, isFirebaseConfigured } from '../lib/firebase-admin.js'
 import { sendPasswordResetEmail, sendTwoFactorCodeEmail } from '../services/email/email.service.js'
 import {
   createTwoFactorChallenge,
-  verifyTwoFactorCode,
+  verifyTwoFactorCode,  
   findUserByEmail,
   clearTwoFactorChallenge
 } from '../services/two-factor/two-factor.service.js'
@@ -112,6 +112,18 @@ export const login = async (req, res) => {
      //let requireTwoFactor = usuario.twoFactorEnabled === true
 
       await resetLoginAttempts(usuario)
+
+    //let requireTwoFactor = usuario.twoFactorEnabled === true
+
+    if (usuario.emailVerified === false) {
+      return res.status(403).json({
+        ok: false,
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Tu cuenta aún no está verificada. Revisa tu correo para activar tu cuenta.'
+      })
+    }
+
+    await resetLoginAttempts(usuario)
 
     let requireTwoFactor = usuario.twoFactorEnabled === true
 
@@ -422,4 +434,3 @@ export const logout = async (req, res) => {
   clearAuthCookies(res)
   return res.status(200).json({ message: 'Sesión cerrada correctamente.' })
 }
-

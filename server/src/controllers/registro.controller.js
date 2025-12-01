@@ -2,7 +2,9 @@ import crypto from 'crypto'
 import Usuario from '../models/Usuario.js'
 import { hashPassword } from '../lib/bcrypt.js'
 import { sendEmailVerificationLink } from '../services/verification.service.js'
-import { PASSWORD_PATTERN, PASSWORD_PATTERN_MESSAGE } from '../utils/password-pattern.js'
+//import { PASSWORD_PATTERN, PASSWORD_PATTERN_MESSAGE } from '../utils/password-pattern.js'
+
+const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/
 
 const requiredFields = [
   'nombre',
@@ -38,9 +40,9 @@ const validatePayload = (payload) => {
     return 'El rol proporcionado no es válido.'
   }
 
-  if (!PASSWORD_PATTERN.test(payload.password)) {
-    return PASSWORD_PATTERN_MESSAGE
-  }
+  if (!PASSWORD_REGEX.test(payload.password)) {
+    return 'La contraseña debe tener al menos 8 caracteres e incluir al menos una letra y un número.'
+  } 
 
   if (payload.aceptaTerminos !== true) {
     return 'Es necesario aceptar los términos y el aviso de privacidad.'
@@ -86,7 +88,7 @@ export const registrarUsuario = async (req, res) => {
       email,
       password: hashedPassword,
       emailVerified: false,
-      verification: {
+      emailVerification: {
         token: hashedVerificationToken,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
       }

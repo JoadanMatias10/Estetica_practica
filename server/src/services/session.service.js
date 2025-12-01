@@ -143,4 +143,4 @@ export const revokeUserSessions = async (usuario) => {
   await usuario.save().catch((error) => {
     console.error('No se pudo revocar las sesiones del usuario:', error)
   })
-}
+} 

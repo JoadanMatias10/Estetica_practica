@@ -22,7 +22,10 @@ export async function sendEmailVerificationLink({ to, token }) {
     process.env.EMAIL_DEFAULT_FROM || process.env.EMAIL_FROM || process.env.SMTP_FROM || ''
   )
 
-  const link = `https://proyecto2fa.web.app/verified?token=${encodeURIComponent(
+  const baseUrl =
+    process.env.EMAIL_VERIFICATION_BASE_URL || 'https://estetica-practica.onrender.com'
+
+  const link = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(
     token,
   )}&email=${encodeURIComponent(to)}`
 

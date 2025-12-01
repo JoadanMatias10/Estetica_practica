@@ -19,27 +19,23 @@ router.post('/api/auth/send-verification', async (req, res) => {
   }
 
   try {
+const usuario = await Usuario.findOne({ email, 'emailVerification.token': hashedToken })
 
-    const usuario = await Usuario.findOne({ email })
+if (!usuario) {
+  return res.status(400).json({ ok: false, error: 'TOKEN_INVALID' })
+}
 
-    if (!usuario) {
-      return res.status(404).json({ ok: false, error: 'USER_NOT_FOUND' })
-    }
+if (
+  !usuario.emailVerification ||
+  !usuario.emailVerification.expiresAt ||
+  usuario.emailVerification.expiresAt < new Date()
+) {
+  return res.status(400).json({ ok: false, error: 'TOKEN_EXPIRED' })
+}
 
-    if (usuario.emailVerified) {
-      return res.status(200).json({ ok: true, message: 'El correo ya fue verificado.' })
-    }
-
-    const token = crypto.randomBytes(32).toString('hex')
-
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
-
-    usuario.verification = {
-      token: hashedToken,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-    }
-
-    await usuario.save()
+usuario.emailVerified = true
+usuario.emailVerification = { token: null, expiresAt: null }
+await usuario.save()
 
     await sendEmailVerificationLink({ to: email, token })
 
@@ -61,7 +57,7 @@ router.get('/api/auth/verify-email', async (req, res) => {
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
 
   try {
-    const usuario = await Usuario.findOne({ email, 'verification.token': hashedToken })
+    const usuario = await Usuario.findOne({ email, 'emailVerification.token': hashedToken })
 
     if (!usuario) {
       return res.status(400).json({ ok: false, error: 'TOKEN_INVALID' })

@@ -28,7 +28,7 @@ const usuarioSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-    verification: {
+    emailVerification: {
       token: {
         type: String
       },
