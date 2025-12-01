@@ -1,3 +1,5 @@
+import { PASSWORD_PATTERN, PASSWORD_PATTERN_MESSAGE } from '../utils/password-pattern.js'
+
 const validateRequiredFields = (payload, fields) => {
   const missing = fields.filter((field) => {
     const value = payload[field]
@@ -61,9 +63,9 @@ export const validateResetPasswordPayload = (payload) => {
     return 'El token de recuperación no es válido.'
   }
 
-  if (typeof payload.password !== 'string' || payload.password.length < 8) {
-    return 'La nueva contraseña debe tener al menos 8 caracteres.'
+  if (typeof payload.password !== 'string' || !PASSWORD_PATTERN.test(payload.password)) {
+    return PASSWORD_PATTERN_MESSAGE
   }
-
+  
   return ''
 }

@@ -1,5 +1,8 @@
+import crypto from 'crypto'
 import Usuario from '../models/Usuario.js'
 import { hashPassword } from '../lib/bcrypt.js'
+import { sendEmailVerificationLink } from '../services/verification.service.js'
+import { PASSWORD_PATTERN, PASSWORD_PATTERN_MESSAGE } from '../utils/password-pattern.js'
 
 const requiredFields = [
   'nombre',
@@ -11,6 +14,8 @@ const requiredFields = [
   'rol',
   'aceptaTerminos'
 ]
+
+const sanitizeText = (value) => (typeof value === 'string' ? value.replace(/<[^>]*>?/g, '').trim() : value)
 
 const validatePayload = (payload) => {
   const missing = requiredFields.filter((field) =>
@@ -33,8 +38,8 @@ const validatePayload = (payload) => {
     return 'El rol proporcionado no es válido.'
   }
 
-  if (payload.password.length < 8) {
-    return 'La contraseña debe tener al menos 8 caracteres.'
+  if (!PASSWORD_PATTERN.test(payload.password)) {
+    return PASSWORD_PATTERN_MESSAGE
   }
 
   if (payload.aceptaTerminos !== true) {
@@ -46,12 +51,21 @@ const validatePayload = (payload) => {
 
 export const registrarUsuario = async (req, res) => {
   try {
-    const validationMessage = validatePayload(req.body)
+
+    const sanitizedPayload = Object.fromEntries(
+      Object.entries(req.body || {}).map(([key, value]) => [key, sanitizeText(value)])
+    )
+
+    if (typeof sanitizedPayload.email === 'string') {
+      sanitizedPayload.email = sanitizedPayload.email.toLowerCase()
+    }
+
+    const validationMessage = validatePayload(sanitizedPayload)
     if (validationMessage) {
       return res.status(400).json({ message: validationMessage })
     }
 
-    const { email, password, confirmPassword, ...rest } = req.body
+     const { email, password, confirmPassword, ...rest } = sanitizedPayload
 
     if (confirmPassword && confirmPassword !== password) {
       return res.status(400).json({ message: 'Las contraseñas no coinciden.' })
@@ -64,13 +78,23 @@ export const registrarUsuario = async (req, res) => {
 
     const hashedPassword = await hashPassword(password)
 
+    const verificationToken = crypto.randomBytes(32).toString('hex')
+    const hashedVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex')
+
     const usuario = new Usuario({
       ...rest,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      emailVerified: false,
+      verification: {
+        token: hashedVerificationToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      }
     })
 
     await usuario.save()
+
+    await sendEmailVerificationLink({ to: email, token: verificationToken })
 
     return res.status(201).json({ message: 'Usuario registrado correctamente.' })
   } catch (error) {

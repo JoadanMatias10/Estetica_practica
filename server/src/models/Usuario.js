@@ -24,6 +24,18 @@ const usuarioSchema = new mongoose.Schema(
       trim: true,
       lowercase: true
     },
+     emailVerified: {
+      type: Boolean,
+      default: false
+    },
+    verification: {
+      token: {
+        type: String
+      },
+      expiresAt: {
+        type: Date
+      }
+    },
     telefono: {
       type: String,
       required: true,

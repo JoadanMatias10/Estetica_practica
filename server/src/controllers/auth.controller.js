@@ -35,6 +35,13 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Credenciales inválidas.' })
     }
 
+      if (!usuario.emailVerified) {
+      return res.status(403).json({
+        message: 'Debes verificar tu correo electrónico antes de iniciar sesión.',
+        emailVerified: false
+      })
+    }
+
     const isValidPassword = await comparePassword(password, usuario.password)
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Credenciales inválidas.' })
@@ -251,6 +258,13 @@ export const loginWithGoogle = async (req, res) => {
             decodedToken?.name || decodedToken?.given_name || decodedToken?.family_name || email,
           email
         }
+      })
+    }
+
+    if (!usuario.emailVerified) {
+      return res.status(403).json({
+        message: 'Debes verificar tu correo electrónico antes de iniciar sesión.',
+        emailVerified: false
       })
     }
 
