@@ -33,6 +33,16 @@ const usuarioSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    //Nuevo
+    failedLoginAttempts: {
+      type: Number,
+      default: 0
+    },
+    lockUntil: {
+      type: Date,
+      default: null
+    },
+    //----------------
     rol: {
       type: String,
       required: true,

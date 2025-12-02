@@ -26,6 +26,10 @@ import {
   validateRecoverPayload,
   validateResetPasswordPayload,
 } from '../validators/auth.validator.js'
+//Nuevo
+const MAX_FAILED_LOGIN_ATTEMPTS = 3
+const LOCK_TIME_MINUTES = 10
+//---------------------------
 
 export const login = async (req, res) => {
   try {
@@ -41,12 +45,56 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Credenciales inválidas.' })
     }
 
+    //Nuevo
+       const lockTime = usuario.lockUntil ? new Date(usuario.lockUntil).getTime() : null
+
+    if (lockTime && lockTime > Date.now()) {
+      return res.status(423).json({
+        message: 'Tu cuenta está temporalmente bloqueada. Intenta nuevamente más tarde.'
+      })
+    }
+
+    if (lockTime && lockTime <= Date.now() && (usuario.failedLoginAttempts || usuario.lockUntil)) {
+      usuario.failedLoginAttempts = 0
+      usuario.lockUntil = null
+
+      await usuario.save().catch((error) => {
+        console.error('No se pudo limpiar el bloqueo expirado del usuario:', error)
+      })
+    }
+    //---------------------
+
     const isValidPassword = await comparePassword(password, usuario.password)
     if (!isValidPassword) {
+      //Nuevo
+      usuario.failedLoginAttempts = (usuario.failedLoginAttempts || 0) + 1
+
+      if (usuario.failedLoginAttempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+        const lockUntil = new Date()
+        lockUntil.setMinutes(lockUntil.getMinutes() + LOCK_TIME_MINUTES)
+
+        usuario.lockUntil = lockUntil
+      }
+
+      await usuario.save().catch((error) => {
+        console.error('No se pudo registrar el intento fallido de inicio de sesión:', error)
+      })
+      //-----------------------
       return res.status(401).json({ message: 'Credenciales inválidas.' })
     }
 
-     let requireTwoFactor = usuario.twoFactorEnabled === true
+     //let requireTwoFactor = usuario.twoFactorEnabled === true
+
+     //Nuevo
+      let requireTwoFactor = usuario.twoFactorEnabled === true
+    let shouldSaveUser = false
+
+    if (usuario.failedLoginAttempts || usuario.lockUntil) {
+      usuario.failedLoginAttempts = 0
+      usuario.lockUntil = null
+      shouldSaveUser = true
+    }
+    //----------------------
 
     if (!requireTwoFactor) {
       requireTwoFactor = true
@@ -54,13 +102,26 @@ export const login = async (req, res) => {
       if (usuario.twoFactorEnabled !== true) {
         usuario.twoFactorEnabled = true
 
-        await usuario
+        /*await usuario
           .save()
           .catch((error) => {
             console.error('No se pudo habilitar el segundo factor automáticamente para el usuario:', error)
-          })
+          })*/
+
+          //Nuevo
+          shouldSaveUser = true
       }
     }
+
+    //Nuevo
+      if (shouldSaveUser) {
+      await usuario
+        .save()
+        .catch((error) => {
+          console.error('No se pudo actualizar el usuario después del inicio de sesión:', error)
+        })
+    }
+    //------------------
 
     if (requireTwoFactor) {
       const { code } = await createTwoFactorChallenge(usuario)
