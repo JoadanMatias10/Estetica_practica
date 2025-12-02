@@ -296,7 +296,6 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
-import { useApiClient } from '../composables/useApiClient'
 
 const emit = defineEmits(['navigate'])
 
@@ -457,7 +456,6 @@ const apiBaseUrl = computed(() => {
   return base.endsWith('/') ? base.slice(0, -1) : base
 })
 
-const { apiFetch } = useApiClient()
 
 const handleSubmit = async () => {
   error.value = ''
@@ -489,7 +487,7 @@ const handleSubmit = async () => {
       payload.secretAnswer = form.secretAnswer
     }
 
-      const response = await apiFetch(`${apiBaseUrl.value}/api/registro`, {
+       const response = await fetch(`${apiBaseUrl.value}/api/registro`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

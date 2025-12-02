@@ -144,7 +144,6 @@
 <script setup>
 import { reactive, ref, watch } from 'vue'
 import { useApiBaseUrl } from '../composables/useApiBaseUrl'
-import { useApiClient } from '../composables/useApiClient'
 
 const props = defineProps({
   initialEmail: {
@@ -160,7 +159,6 @@ const props = defineProps({
 const emit = defineEmits(['navigate'])
 
 const { apiBaseUrl } = useApiBaseUrl()
-const { apiFetch } = useApiClient()
 
 const form = reactive({
   email: props.initialEmail.trim(),
@@ -309,7 +307,7 @@ watch(
     lastSecretQueryKey.value = queryKey
 
     try {
-      const response = await apiFetch(`${apiBaseUrl.value}/api/auth/verify-secret-question`, {
+      const response = await fetch(`${apiBaseUrl.value}/api/auth/verify-secret-question`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -358,7 +356,7 @@ const handleSubmit = async () => {
       payload.secretAnswer = form.secretAnswer
     }
 
-     const response = await apiFetch(`${apiBaseUrl.value}/api/auth/reset`, {
+     const response = await fetch(`${apiBaseUrl.value}/api/auth/reset`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
