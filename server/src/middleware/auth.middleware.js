@@ -28,22 +28,6 @@ import UserSession from '../models/UserSession.js'
     }
     //------------------
 
-      const now = new Date()
-    const lastActivity = session.lastActivityAt || session.createdAt || now
-    const inactivityLimitMs = 60 * 1000
-
-    if (now - lastActivity > inactivityLimitMs) {
-      session.revokedAt = now
-      await session.save()
-
-      return res
-        .status(401)
-        .json({ message: 'Sesión expirada por inactividad. Inicia sesión nuevamente.' })
-    }
-
-    session.lastActivityAt = now
-    await session.save()
-
     req.user = decoded
     //NUEVO
     req.sessionId = sessionId
