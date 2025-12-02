@@ -277,7 +277,30 @@ const errors = reactive(initialErrors())
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const phonePattern = /^[0-9+()\s-]{10,}$/
-const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/
+const commonPasswords = ['123456', 'password', 'qwerty', '12345678']
+
+const validatePassword = (value) => {
+  if (!value) return 'Crea una contraseña.'
+
+  const requisitos = []
+
+  if (value.length < 8) requisitos.push('tener al menos 8 caracteres')
+  if (!/[A-Z]/.test(value)) requisitos.push('incluir al menos una letra mayúscula')
+  if (!/[a-z]/.test(value)) requisitos.push('incluir al menos una letra minúscula')
+  if (!/[0-9]/.test(value)) requisitos.push('incluir al menos un número')
+  if (!/[!@#$%^&*(),.?":{}|<>\[\]\\/;\'\+\-=]/.test(value)) {
+    requisitos.push('incluir al menos un carácter especial')
+  }
+  if (commonPasswords.includes(value)) {
+    requisitos.push('no usar contraseñas comunes (ej. 123456, password, qwerty, 12345678)')
+  }
+
+  if (requisitos.length) {
+    return `La contraseña debe ${requisitos.join(', ')}.`
+  }
+
+  return ''
+}
 
 const validators = {
   nombre: (value) => (value ? '' : 'Ingresa tu nombre.'),
@@ -295,13 +318,7 @@ const validators = {
     }
     return ''
   },
-  password: (value) => {
-    if (!value) return 'Crea una contraseña.'
-    if (!passwordPattern.test(value)) {
-      return 'La contraseña debe tener al menos 8 caracteres e incluir una letra y un número.'
-    }
-    return ''
-  },
+ password: (value) => validatePassword(value),
   confirmPassword: (value) => {
     if (!value) return 'Confirma tu contraseña.'
     if (value !== form.password) return 'Las contraseñas no coinciden.'
