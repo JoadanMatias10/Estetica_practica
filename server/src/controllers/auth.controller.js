@@ -30,7 +30,10 @@ import {
   validateTwoFactorPayload,
   validateRecoverPayload,
   validateResetPasswordPayload,
+   validateSecretQuestionPayload,
 } from '../validators/auth.validator.js'
+//NUEVO
+import { verifySecretAnswer } from '../services/secret-question/secret-question.service.js'
 //Nuevo
 const MAX_FAILED_LOGIN_ATTEMPTS = 3
 const LOCK_TIME_MINUTES = 10
@@ -314,6 +317,62 @@ export const recoverPassword = async (req, res) => {
   }
 
   }
+//NUEVO
+export const verifySecretQuestion = async (req, res) => {
+  try {
+    const validationMessage = validateSecretQuestionPayload(req.body)
+
+    if (validationMessage) {
+      return res.status(400).json({ message: validationMessage })
+    }
+
+    const { email, token, secretAnswer } = req.body
+    const usuario = await findUserByEmail(email)
+
+    const invalidResponse = {
+      message: 'Los datos de verificación proporcionados no son válidos.'
+    }
+
+    if (!usuario) {
+      return res.status(400).json(invalidResponse)
+    }
+
+    const { valid, expired } = await validatePasswordResetChallenge(usuario, token)
+
+    if (!valid) {
+      if (expired) {
+        await clearPasswordResetChallenge(usuario)
+      }
+
+      return res.status(400).json(invalidResponse)
+    }
+
+    if (usuario.secretQuestionEnabled) {
+      const isValidAnswer = await verifySecretAnswer(secretAnswer, usuario.secretAnswerHash)
+
+      if (!isValidAnswer) {
+        return res.status(401).json(invalidResponse)
+      }
+
+      if (!usuario.passwordReset) {
+        usuario.passwordReset = {}
+      }
+
+      usuario.passwordReset.secretQuestionVerified = true
+      await usuario.save()
+    }
+
+    return res.status(200).json({
+      message: 'Validación completada. Puedes continuar con el restablecimiento.'
+    })
+  } catch (error) {
+    console.error('Error al validar la pregunta secreta:', error)
+    return res
+      .status(500)
+      .json({ message: 'No fue posible validar la pregunta secreta. Intenta nuevamente.' })
+  }
+}
+//-----------------------------------------------------------------
 
   export const resetPassword = async (req, res) => {
   try {
@@ -344,6 +403,16 @@ export const recoverPassword = async (req, res) => {
         message: reason || 'El token para restablecer tu contraseña no es válido.',
       })
     }
+
+    //NUEVO
+     const secretQuestionVerified = usuario.passwordReset?.secretQuestionVerified === true
+
+    if (usuario.secretQuestionEnabled && !secretQuestionVerified) {
+      return res.status(400).json({
+        message: 'Debes validar tu pregunta secreta antes de restablecer la contraseña.',
+      })
+    }
+    //-------------
 
     await updateUserPassword(usuario, password)
     await clearPasswordResetChallenge(usuario)

@@ -33,6 +33,21 @@ const usuarioSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    //NUEVO
+     secretQuestion: {
+      type: String,
+      default: null,
+      trim: true
+    },
+    secretAnswerHash: {
+      type: String,
+      default: null
+    },
+    secretQuestionEnabled: {
+      type: Boolean,
+      default: false
+    },
+    //-------------------
     //Nuevo
     failedLoginAttempts: {
       type: Number,

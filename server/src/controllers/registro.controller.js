@@ -1,5 +1,11 @@
 import Usuario from '../models/Usuario.js'
 import { hashPassword } from '../lib/bcrypt.js'
+//NUEVO
+import {
+  buildSecretAnswerHash,
+  isTrivialSecretAnswer
+} from '../services/secret-question/secret-question.service.js'
+//------------------
 
 const requiredFields = [
   'nombre',
@@ -51,7 +57,8 @@ export const registrarUsuario = async (req, res) => {
       return res.status(400).json({ message: validationMessage })
     }
 
-    const { email, password, confirmPassword, ...rest } = req.body
+    //const { email, password, confirmPassword, ...rest } = req.body
+    const { email, password, confirmPassword, secretQuestion, secretAnswer, ...rest } = req.body
 
     if (confirmPassword && confirmPassword !== password) {
       return res.status(400).json({ message: 'Las contraseñas no coinciden.' })
@@ -64,11 +71,35 @@ export const registrarUsuario = async (req, res) => {
 
     const hashedPassword = await hashPassword(password)
 
-    const usuario = new Usuario({
+    //const usuario = new Usuario({
+     const usuarioData = {
       ...rest,
       email,
       password: hashedPassword
-    })
+    }
+    //NUEVO
+     const hasSecretQuestion =
+      typeof secretQuestion === 'string' && typeof secretAnswer === 'string'
+
+    if (hasSecretQuestion) {
+      const question = secretQuestion.trim()
+      const answer = secretAnswer.trim()
+
+      if (!question) {
+        return res.status(400).json({ message: 'La pregunta secreta no puede estar vacía.' })
+      }
+
+      if (isTrivialSecretAnswer(answer)) {
+        return res.status(400).json({ message: 'La respuesta secreta es demasiado fácil de adivinar.' })
+      }
+
+      usuarioData.secretQuestion = question
+      usuarioData.secretAnswerHash = await buildSecretAnswerHash(answer)
+      usuarioData.secretQuestionEnabled = true
+    }
+
+    const usuario = new Usuario(usuarioData)
+    //--------------------------------------------
 
     await usuario.save()
 

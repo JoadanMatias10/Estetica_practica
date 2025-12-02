@@ -22,6 +22,9 @@ export const createPasswordResetChallenge = async (usuario) => {
   usuario.passwordReset = {
     token: hashedToken,
     expiresAt: buildExpirationDate(),
+    //NUEVO
+    secretQuestionVerified: false,
+    //-----------------------
   }
 
   await usuario.save()
