@@ -14,6 +14,12 @@ import {
   updateUserPassword,
   validatePasswordResetChallenge,
 } from '../services/password-reset/password-reset.service.js'
+//Nuevo
+import {
+  isRecoveryRateLimited,
+  registerRecoveryAttempt,
+} from '../services/password-reset/recovery-attempt.service.js'
+//-------------------
 import {
   validateLoginPayload,
   validateTwoFactorPayload,
@@ -135,12 +141,27 @@ export const recoverPassword = async (req, res) => {
     }
 
     const { email } = req.body
-    const usuario = await findUserByEmail(email)
+    //const usuario = await findUserByEmail(email)
 
     const responseMessage =
       'Si tu correo está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos.'
 
+      //Nuevo
+    const isRateLimited = await isRecoveryRateLimited(email)
+
+    if (isRateLimited) {
+      return res.status(200).json({ message: responseMessage })
+    }
+
+    const usuario = await findUserByEmail(email)
+    //------------------------------------------
+
     if (!usuario) {
+      //Nuevo
+       await registerRecoveryAttempt(email, req.ip).catch((error) => {
+        console.error('No se pudo registrar el intento de recuperación:', error)
+      })
+      //--------------------------
       return res.status(200).json({ message: responseMessage })
     }
 
@@ -151,6 +172,12 @@ export const recoverPassword = async (req, res) => {
       token,
       nombre: usuario.nombre
     })
+
+    //Nuevo
+    await registerRecoveryAttempt(email, req.ip).catch((error) => {
+      console.error('No se pudo registrar el intento de recuperación:', error)
+    })
+    //----------------------
 
     return res.status(200).json({ message: responseMessage })
   } catch (error) {
