@@ -19,23 +19,38 @@ router.post('/api/auth/send-verification', async (req, res) => {
   }
 
   try {
-const usuario = await Usuario.findOne({ email, 'emailVerification.token': hashedToken })
+//const usuario = await Usuario.findOne({ email, 'emailVerification.token': hashedToken })
+const usuario = await Usuario.findOne({ email })
+
+/*if (!usuario) {
+  return res.status(400).json({ ok: false, error: 'TOKEN_INVALID' })
+}*/
 
 if (!usuario) {
-  return res.status(400).json({ ok: false, error: 'TOKEN_INVALID' })
-}
+      return res.json({
+        ok: true,
+        message: 'Si tu correo está registrado, recibirás un enlace para verificar tu cuenta.'
+      })
+    }
 
-if (
+    if (usuario.emailVerified) {
+      return res.json({ ok: true, message: 'El correo ya se encuentra verificado.' })
+    }
+
+/*if (
   !usuario.emailVerification ||
   !usuario.emailVerification.expiresAt ||
   usuario.emailVerification.expiresAt < new Date()
 ) {
   return res.status(400).json({ ok: false, error: 'TOKEN_EXPIRED' })
-}
+}*/
 
-usuario.emailVerified = true
-usuario.emailVerification = { token: null, expiresAt: null }
-await usuario.save()
+//usuario.emailVerified = true
+//usuario.emailVerification = { token: null, expiresAt: null }
+//await usuario.save()
+
+const token = crypto.randomBytes(32).toString('hex')
+const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
 
     await sendEmailVerificationLink({ to: email, token })
 
@@ -45,6 +60,13 @@ await usuario.save()
     return res.status(500).json({ ok: false, error: 'EMAIL_SEND_FAILED' })
   }
 })
+
+ usuario.emailVerification = {
+      token: hashedToken,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    }
+
+    await usuario.save()
 
 router.get('/api/auth/verify-email', async (req, res) => {
   const email = normalizeEmail(req.query?.email)
@@ -63,12 +85,16 @@ router.get('/api/auth/verify-email', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'TOKEN_INVALID' })
     }
 
-    if (usuario.verification?.expiresAt && usuario.verification.expiresAt < new Date()) {
+   if (
+      !usuario.emailVerification?.expiresAt ||
+      usuario.emailVerification.expiresAt < new Date()
+    ) {
       return res.status(400).json({ ok: false, error: 'TOKEN_EXPIRED' })
     }
 
     usuario.emailVerified = true
-    usuario.verification = undefined
+    //usuario.verification = undefined
+     usuario.emailVerification = { token: null, expiresAt: null }
     await usuario.save()
 
     return res.json({ ok: true, message: 'Correo verificado correctamente.' })
