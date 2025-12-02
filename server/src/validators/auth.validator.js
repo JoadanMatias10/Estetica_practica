@@ -65,5 +65,28 @@ export const validateResetPasswordPayload = (payload) => {
     return 'La nueva contraseña debe tener al menos 8 caracteres.'
   }
 
+  //NUEVO
+  return ''
+}
+
+export const validateSecretQuestionPayload = (payload) => {
+  const message = validateRequiredFields(payload, ['email', 'token', 'secretAnswer'])
+  if (message) return message
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+    return 'El correo electrónico no tiene un formato válido.'
+  }
+
+  const token = String(payload.token || '').trim()
+  if (!/^[a-f0-9]{64}$/i.test(token)) {
+    return 'El token de recuperación no es válido.'
+  }
+
+  const answer = String(payload.secretAnswer || '').trim()
+  if (answer.length < 3) {
+    return 'La respuesta secreta no es válida.'
+  }
+  //---------------
+
   return ''
 }

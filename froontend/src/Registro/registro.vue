@@ -173,6 +173,59 @@
         <p v-if="errors.rol" class="registro__error" role="alert">
           {{ errors.rol }}
         </p>
+      </div>  
+
+      <div class="registro__field">
+        <label class="registro__label" for="secret-question">
+          Pregunta secreta (opcional)
+        </label>
+        <select
+          id="secret-question"
+          v-model="form.secretQuestionOption"
+          :class="['registro__input', 'registro__input--select', { 'registro__input--invalid': errors.secretQuestion }]"
+          name="secret-question"
+          :aria-invalid="Boolean(errors.secretQuestion)"
+          @change="() => validateField('secretQuestion')"
+        >
+          <option value="">Sin pregunta secreta</option>
+          <option value="¿Nombre de tu primera mascota?">¿Nombre de tu primera mascota?</option>
+          <option value="¿Ciudad donde naciste?">¿Ciudad donde naciste?</option>
+          <option value="¿Nombre de tu mejor amigo de la infancia?">¿Nombre de tu mejor amigo de la infancia?</option>
+          <option value="¿Comida favorita de la infancia?">¿Comida favorita de la infancia?</option>
+          <option value="custom">Escribir mi propia pregunta</option>
+        </select>
+        <input
+          v-if="form.secretQuestionOption === 'custom'"
+          id="secret-question-custom"
+          v-model.trim="form.customSecretQuestion"
+          :class="['registro__input', { 'registro__input--invalid': errors.secretQuestion }]"
+          type="text"
+          name="secret-question-custom"
+          placeholder="Escribe tu pregunta secreta"
+          :aria-invalid="Boolean(errors.secretQuestion)"
+          @blur="() => validateField('secretQuestion')"
+        />
+        <p v-if="errors.secretQuestion" class="registro__error" role="alert">
+          {{ errors.secretQuestion }}
+        </p>
+      </div>
+
+      <div class="registro__field">
+        <label class="registro__label" for="secret-answer">
+          Respuesta secreta (opcional)
+        </label>
+        <input
+          id="secret-answer"
+          v-model.trim="form.secretAnswer"
+          :class="['registro__input', { 'registro__input--invalid': errors.secretAnswer }]"
+          type="text"
+          name="secret-answer"
+          :aria-invalid="Boolean(errors.secretAnswer)"
+          @blur="() => validateField('secretAnswer')"
+        />
+        <p v-if="errors.secretAnswer" class="registro__error" role="alert">
+          {{ errors.secretAnswer }}
+        </p>
       </div>
 
       <div class="registro__agreements">
@@ -255,7 +308,10 @@ const initialState = () => ({
   password: '',
   confirmPassword: '',
   aceptaTerminos: false,
-  rol: ''
+  rol: '',
+  secretQuestionOption: '',
+  customSecretQuestion: '',
+  secretAnswer: ''
 })
 
 const form = reactive(initialState())
@@ -271,7 +327,9 @@ const initialErrors = () => ({
   password: '',
   confirmPassword: '',
   rol: '',
-  aceptaTerminos: ''
+  aceptaTerminos: '',
+  secretQuestion: '',
+  secretAnswer: ''
 })
 const errors = reactive(initialErrors())
 
@@ -302,6 +360,12 @@ const validatePassword = (value) => {
   return ''
 }
 
+const commonSecretAnswers = ['123456', 'password', 'qwerty']
+
+const resolveSecretQuestion = () =>
+  form.secretQuestionOption === 'custom' ? form.customSecretQuestion.trim() : form.secretQuestionOption
+
+
 const validators = {
   nombre: (value) => (value ? '' : 'Ingresa tu nombre.'),
   apellidoPaterno: (value) => (value ? '' : 'Ingresa tu apellido paterno.'),
@@ -325,7 +389,28 @@ const validators = {
     return ''
   },
   rol: (value) => (value ? '' : 'Selecciona un rol.'),
-  aceptaTerminos: (value) => (value ? '' : 'Debes aceptar los términos y el aviso de privacidad.')
+  aceptaTerminos: (value) => (value ? '' : 'Debes aceptar los términos y el aviso de privacidad.'),
+  secretQuestion: () => {
+    const selectedQuestion = resolveSecretQuestion()
+    if (!selectedQuestion && form.secretAnswer) {
+      return 'Selecciona o escribe una pregunta secreta.'
+    }
+    if (form.secretQuestionOption === 'custom' && !selectedQuestion) {
+      return 'Escribe tu pregunta secreta.'
+    }
+    return ''
+  },
+  secretAnswer: (value) => {
+    const selectedQuestion = resolveSecretQuestion()
+    if (!selectedQuestion && !value) return ''
+    if (!selectedQuestion && value) return 'Selecciona o escribe una pregunta secreta.'
+    if (!value) return 'Ingresa la respuesta a tu pregunta secreta.'
+    if (value.length < 4) return 'La respuesta debe tener al menos 4 caracteres.'
+    if (commonSecretAnswers.includes(value.toLowerCase())) {
+      return 'Usa una respuesta menos obvia.'
+    }
+    return ''
+  }
 }
 
 const validateField = (field) => {
@@ -383,6 +468,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
+    const selectedSecretQuestion = resolveSecretQuestion()
     const payload = {
       nombre: form.nombre,
       apellidoPaterno: form.apellidoPaterno,
@@ -393,6 +479,11 @@ const handleSubmit = async () => {
       confirmPassword: form.confirmPassword,
       aceptaTerminos: form.aceptaTerminos,
       rol: form.rol
+    }
+
+    if (selectedSecretQuestion && form.secretAnswer) {
+      payload.secretQuestion = selectedSecretQuestion
+      payload.secretAnswer = form.secretAnswer
     }
 
     const response = await fetch(`${apiBaseUrl.value}/api/registro`, {
