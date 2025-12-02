@@ -116,7 +116,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    const response = await fetch(`${apiBaseUrl.value}/api/auth/recover`, {
+      const response = await fetch(`${apiBaseUrl.value}/api/auth/recover`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -187,7 +187,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    const response = await fetch(`${apiBaseUrl.value}/api/auth/login`, {
+      const response = await fetch(`${apiBaseUrl.value}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -255,7 +255,7 @@ const handleVerifyTwoFactor = async () => {
   isVerifyingTwoFactor.value = true
 
   try {
-    const response = await fetch(`${apiBaseUrl.value}/api/auth/verify`, {
+      const response = await fetch(`${apiBaseUrl.value}/api/auth/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -324,7 +324,7 @@ const handleGoogleSignIn = async () => {
       return
     }
 
-    const response = await fetch(`${apiBaseUrl.value}/api/auth/google`, {
+      const response = await fetch(`${apiBaseUrl.value}/api/auth/google`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -307,7 +307,7 @@ watch(
     lastSecretQueryKey.value = queryKey
 
     try {
-      const response = await fetch(`${apiBaseUrl.value}/api/auth/verify-secret-question`, {
+        const response = await fetch(`${apiBaseUrl.value}/api/auth/verify-secret-question`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -356,7 +356,7 @@ const handleSubmit = async () => {
       payload.secretAnswer = form.secretAnswer
     }
 
-     const response = await fetch(`${apiBaseUrl.value}/api/auth/reset`, {
+      const response = await fetch(`${apiBaseUrl.value}/api/auth/reset`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
