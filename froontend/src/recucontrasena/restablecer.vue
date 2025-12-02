@@ -87,6 +87,32 @@
         </p>
       </div>
 
+       <div v-if="secretQuestionEnabled" class="reset__field">
+        <label class="reset__label" for="reset-secret-answer">
+          {{ secretQuestion || 'Pregunta secreta' }}
+        </label>
+        <input
+          id="reset-secret-answer"
+          v-model="form.secretAnswer"
+          :class="['reset__input', { 'reset__input--invalid': errors.secretAnswer }]"
+          type="text"
+          name="secret-answer"
+          autocomplete="off"
+          :required="secretQuestionEnabled"
+          :aria-invalid="Boolean(errors.secretAnswer)"
+          :aria-describedby="errors.secretAnswer ? 'reset-secret-answer-error' : undefined"
+          @blur="validateField('secretAnswer')"
+        />
+        <p
+          v-if="errors.secretAnswer"
+          id="reset-secret-answer-error"
+          class="reset__error"
+          role="alert"
+        >
+          {{ errors.secretAnswer }}
+        </p>
+      </div>
+
       <button class="reset__submit" type="submit" :disabled="isSubmitting">
         <span v-if="isSubmitting" class="reset__spinner" aria-hidden="true"></span>
         <span>{{ isSubmitting ? 'Actualizando…' : 'Restablecer contraseña' }}</span>
@@ -139,6 +165,7 @@ const form = reactive({
   token: props.initialToken.trim(),
   password: '',
   confirmPassword: '',
+  secretAnswer: '',
 })
 
 watch(
@@ -165,6 +192,9 @@ const errors = reactive({
 const statusMessage = ref('')
 const statusType = ref('neutral')
 const isSubmitting = ref(false)
+const secretQuestion = ref('')
+const secretQuestionEnabled = ref(false)
+const lastSecretQueryKey = ref('')
 
 const emailPattern = /^(?:[a-zA-Z0-9_'^&+{}-]+(?:\.[a-zA-Z0-9_'^&+{}-]+)*|".+")@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/
 const tokenPattern = /^[a-f0-9]{64}$/i
@@ -214,6 +244,22 @@ const fieldValidators = {
 
     return ''
   },
+  secretAnswer(value) {
+    if (!secretQuestionEnabled.value) {
+      errors.secretAnswer = ''
+      return ''
+    }
+
+    if (!secretQuestion.value) {
+      return ''
+    }
+
+    if (!value?.trim()) {
+      return 'Ingresa la respuesta a tu pregunta secreta.'
+    }
+
+    return ''
+  },
 }
 
 const validateField = (field) => {
@@ -225,9 +271,66 @@ const validateForm = () => {
   validateField('token')
   validateField('password')
   validateField('confirmPassword')
+  validateField('secretAnswer')
 
-  return !errors.email && !errors.token && !errors.password && !errors.confirmPassword
+  return (
+    !errors.email &&
+    !errors.token &&
+    !errors.password &&
+    !errors.confirmPassword &&
+    !errors.secretAnswer
+  )
 }
+
+const resetSecretQuestionState = () => {
+  secretQuestionEnabled.value = false
+  secretQuestion.value = ''
+  form.secretAnswer = ''
+  errors.secretAnswer = ''
+  lastSecretQueryKey.value = ''
+}
+
+watch(
+  () => [form.email, form.token],
+  async ([email, token]) => {
+    if (!emailPattern.test(email) || !tokenPattern.test(token)) {
+      resetSecretQuestionState()
+      return
+    }
+
+    const queryKey = `${email}:${token}`
+
+    if (queryKey === lastSecretQueryKey.value) {
+      return
+    }
+
+    lastSecretQueryKey.value = queryKey
+
+    try {
+      const response = await fetch(`${apiBaseUrl.value}/api/auth/verify-secret-question`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, token }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok || !data?.secretQuestionEnabled) {
+        resetSecretQuestionState()
+        return
+      }
+
+      secretQuestionEnabled.value = true
+      secretQuestion.value = data.secretQuestion || 'Pregunta secreta'
+      errors.secretAnswer = ''
+    } catch (error) {
+      resetSecretQuestionState()
+    }
+  },
+  { immediate: true },
+)
 
 const handleSubmit = async () => {
   if (isSubmitting.value) return
@@ -242,21 +345,33 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
+
+    const payload = {
+      email: form.email,
+      token: form.token,
+      password: form.password,
+    }
+
+    if (secretQuestionEnabled.value) {
+      payload.secretAnswer = form.secretAnswer
+    }
+
     const response = await fetch(`${apiBaseUrl.value}/api/auth/reset`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        email: form.email,
-        token: form.token,
-        password: form.password,
-      }),
+     body: JSON.stringify(payload),
     })
 
     const data = await response.json().catch(() => ({}))
 
     if (!response.ok) {
+
+      if (secretQuestionEnabled.value && data?.message) {
+        errors.secretAnswer = data.message
+      }
+
       statusMessage.value = data?.message || 'No fue posible restablecer tu contraseña. Intenta nuevamente.'
       statusType.value = 'error'
       return
@@ -267,6 +382,7 @@ const handleSubmit = async () => {
     statusType.value = 'success'
     form.password = ''
     form.confirmPassword = ''
+    form.secretAnswer = ''
   } catch (error) {
     statusMessage.value = 'No fue posible restablecer tu contraseña. Intenta nuevamente.'
     statusType.value = 'error'
