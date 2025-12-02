@@ -192,12 +192,20 @@ export const verifyTwoFactor = async (req, res) => {
     }
 
     //NUEVO
-    const sessionId = crypto.randomUUID()
+    /*const sessionId = crypto.randomUUID()
 
     await UserSession.create({
       userId: usuario._id,
       sessionId
-    })
+    })*/
+
+   const sessionId = crypto.randomUUID()
+
+  await UserSession.create({
+    userId: usuario._id,
+    sessionId,
+    lastActivityAt: new Date()
+  })
 
     const token = jwt.sign(
       {

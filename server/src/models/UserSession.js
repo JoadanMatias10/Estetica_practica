@@ -16,6 +16,10 @@ const userSessionSchema = new mongoose.Schema(
       type: Date,
       default: Date.now
     },
+    lastActivityAt: {
+      type: Date,
+      default: Date.now
+    },
     revokedAt: {
       type: Date,
       default: null
