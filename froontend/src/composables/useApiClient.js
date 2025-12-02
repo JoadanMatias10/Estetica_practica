@@ -30,9 +30,29 @@ const extractMessage = async (response) => {
   }
 }
 
-const isSessionExpiredResponse = async (response) => {
-  if (response.status !== 401) return false
+const AUTH_ENDPOINTS = [
+  '/api/auth/login',
+  '/api/auth/verify',
+  '/api/auth/recover',
+  '/api/auth/reset',
+]
 
+const isAuthEndpoint = (input) => {
+  const url = typeof input === 'string' ? input : input?.url
+
+  if (!url) return false
+
+  try {
+    const { pathname } = new URL(url, window.location.origin)
+
+    return AUTH_ENDPOINTS.some((endpoint) => pathname.startsWith(endpoint))
+  } catch (error) {
+    return AUTH_ENDPOINTS.some((endpoint) => url.startsWith(endpoint))
+  }
+}
+
+const isSessionExpiredResponse = async (response, input) => {
+  if (response.status !== 401 || isAuthEndpoint(input)) return false
   const message = (await extractMessage(response))?.toLowerCase() || ''
 
   return SESSION_ERROR_PATTERNS.some((pattern) => message.includes(pattern))
@@ -44,7 +64,7 @@ export const useApiClient = () => {
   const apiFetch = async (input, init) => {
     const response = await fetch(input, init)
 
-    if (await isSessionExpiredResponse(response)) {
+    if (await isSessionExpiredResponse(response, input)) {
       notifySessionExpired()
     }
 
