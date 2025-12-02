@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken'
+//nuevo
+import UserSession from '../models/UserSession.js'
+//-----------------------------
 
-export const requireAuth = (req, res, next) => {
+//export const requireAuth = (req, res, next) => {
+  export const requireAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization || ''
   const [scheme, token] = authHeader.split(' ')
 
@@ -10,8 +14,25 @@ export const requireAuth = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] })
+    //nuevo
+    const sessionId = decoded.sessionId || decoded.jti
+
+    if (!sessionId) {
+      return res.status(401).json({ message: 'Sesión inválida o cerrada. Inicia sesión nuevamente.' })
+    }
+
+    const session = await UserSession.findOne({ sessionId })
+
+    if (!session || session.revokedAt) {
+      return res.status(401).json({ message: 'Sesión inválida o cerrada. Inicia sesión nuevamente.' })
+    }
+    //------------------
 
     req.user = decoded
+    //NUEVO
+    req.sessionId = sessionId
+    req.userSession = session
+    //--------------------
 
     return next()
   } catch (error) {

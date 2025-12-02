@@ -9,6 +9,8 @@ import {
 } from '../services/two-factor/two-factor.service.js'
 //NUEVO
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
+import UserSession from '../models/UserSession.js'  
 //-------------------
 
 import {
@@ -187,11 +189,19 @@ export const verifyTwoFactor = async (req, res) => {
     }
 
     //NUEVO
+    const sessionId = crypto.randomUUID()
+
+    await UserSession.create({
+      userId: usuario._id,
+      sessionId
+    })
+
     const token = jwt.sign(
       {
         sub: usuario._id.toString(),
         email: usuario.email,
-        role: usuario.rol
+        role: usuario.rol,
+        sessionId
       },
       process.env.JWT_SECRET,
       {
@@ -220,6 +230,34 @@ export const verifyTwoFactor = async (req, res) => {
     return res.status(500).json({ message: 'No fue posible verificar el código. Intenta nuevamente.' })
   }
 }
+
+//NUEVO
+export const logout = async (req, res) => {
+  try {
+    const sessionId = req.sessionId || req.user?.sessionId
+
+    if (!sessionId) {
+      return res.status(401).json({ message: 'Sesión inválida o cerrada. Inicia sesión nuevamente.' })
+    }
+
+    const session = req.userSession || (await UserSession.findOne({ sessionId }))
+
+    if (!session) {
+      return res.status(401).json({ message: 'Sesión inválida o cerrada. Inicia sesión nuevamente.' })
+    }
+
+    if (!session.revokedAt) {
+      session.revokedAt = new Date()
+      await session.save()
+    }
+
+    return res.status(200).json({ message: 'Sesión cerrada correctamente' })
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error)
+    return res.status(500).json({ message: 'No fue posible cerrar la sesión. Intenta nuevamente.' })
+  }
+}
+//-------------------
 
 export const recoverPassword = async (req, res) => {
   try {
