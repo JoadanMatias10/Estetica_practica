@@ -43,3 +43,13 @@ import UserSession from '../models/UserSession.js'
     return res.status(401).json({ message: 'Token inválido.' })
   }
 }
+
+export const requireRole = (...allowedRoles) => (req, res, next) => {
+  const userRole = req.user?.role
+
+  if (!allowedRoles.includes(userRole)) {
+    return res.status(403).json({ message: 'Acceso denegado. No tienes permisos para este recurso.' })
+  }
+
+  return next()
+}

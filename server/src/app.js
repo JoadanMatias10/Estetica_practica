@@ -7,6 +7,7 @@ import registroRoutes from './routes/registro.routes.js'
 import authRoutes from './routes/auth.routes.js'
 //Nuevo
 import userRoutes from './routes/user.routes.js'
+import adminRoutes from './routes/admin.routes.js'
 //-----------------------------
 
 const app = express()
@@ -53,6 +54,7 @@ app.use('/api/registro', registroRoutes)
 app.use('/api/auth', authRoutes)
 //NUEVO
 app.use('/api/user', userRoutes)
+app.use('/api/admin', adminRoutes)
 //----------------------
 app.use((err, req, res, next) => {
   console.error('Error no controlado:', err)
