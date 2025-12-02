@@ -74,10 +74,12 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useApiBaseUrl } from '../composables/useApiBaseUrl'
+import { useApiClient } from '../composables/useApiClient'
 
 const emit = defineEmits(['navigate'])
 
 const { apiBaseUrl } = useApiBaseUrl()
+const { apiFetch } = useApiClient()
 
 const form = reactive({
   email: '',
@@ -116,7 +118,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    const response = await fetch(`${apiBaseUrl.value}/api/auth/recover`, {
+    const response = await apiFetch(`${apiBaseUrl.value}/api/auth/recover`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

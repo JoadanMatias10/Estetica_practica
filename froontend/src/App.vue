@@ -1,10 +1,11 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import LoginForm from './login/login.vue'
 import RegistroForm from './Registro/registro.vue'
 import RecoverPassword from './recucontrasena/contrasena.vue'
 import ResetPassword from './recucontrasena/restablecer.vue'
 import ClienteDashboard from './components/ClienteDashboard.vue'
+import { SESSION_EXPIRED_EVENT, useSessionManager } from './composables/useSessionManager'
 
 
 const views = {
@@ -25,6 +26,8 @@ const resetParams = reactive({
 const session = reactive({
   userName: '',
 })
+
+const { clearStoredSession } = useSessionManager()
 
 if (typeof window !== 'undefined') {
   const params = new URLSearchParams(window.location.search)
@@ -109,6 +112,23 @@ const handleNavigate = (view, payload = {}) => {
   activeView.value = view
   syncUrl()
 }
+
+const handleSessionExpired = () => {
+  clearStoredSession()
+  handleNavigate('login')
+}
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
+  }
+})
 
 </script>
 

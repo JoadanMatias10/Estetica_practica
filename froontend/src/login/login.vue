@@ -2,11 +2,13 @@
 import { computed, reactive, ref } from 'vue'
 import { signInWithPopup } from 'firebase/auth'
 import { useApiBaseUrl } from '../composables/useApiBaseUrl'
+import { useApiClient } from '../composables/useApiClient'
 import { auth, googleProvider } from '../firebase/client'
 
 const emit = defineEmits(['navigate'])
 
 const { apiBaseUrl } = useApiBaseUrl()
+const { apiFetch } = useApiClient()
 
 const form = reactive({
   email: '',
@@ -186,7 +188,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    const response = await fetch(`${apiBaseUrl.value}/api/auth/login`, {
+    const response = await apiFetch(`${apiBaseUrl.value}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -254,7 +256,7 @@ const handleVerifyTwoFactor = async () => {
   isVerifyingTwoFactor.value = true
 
   try {
-    const response = await fetch(`${apiBaseUrl.value}/api/auth/verify`, {
+     const response = await apiFetch(`${apiBaseUrl.value}/api/auth/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -323,7 +325,7 @@ const handleGoogleSignIn = async () => {
       return
     }
 
-    const response = await fetch(`${apiBaseUrl.value}/api/auth/google`, {
+    const response = await apiFetch(`${apiBaseUrl.value}/api/auth/google`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
