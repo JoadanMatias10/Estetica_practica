@@ -7,6 +7,9 @@ import {
   findUserByEmail,
   clearTwoFactorChallenge
 } from '../services/two-factor/two-factor.service.js'
+//NUEVO
+import jwt from 'jsonwebtoken'
+//-------------------
 
 import {
   createPasswordResetChallenge,
@@ -183,9 +186,33 @@ export const verifyTwoFactor = async (req, res) => {
       return res.status(400).json({ message: reason })
     }
 
+    //NUEVO
+    const token = jwt.sign(
+      {
+        sub: usuario._id.toString(),
+        email: usuario.email,
+        role: usuario.rol
+      },
+      process.env.JWT_SECRET,
+      {
+        algorithm: 'HS256',
+        expiresIn: '15m'
+      }
+    )
+    //-----------------
+
     return res.status(200).json({
       message: 'Autenticación completada correctamente.',
-      twoFactorRecommended: false
+      twoFactorRecommended: false,
+      //NUEVO
+      token,
+      user: {
+        id: usuario._id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol
+      }
+      //---------------------------
     })
 
   } catch (error) {
