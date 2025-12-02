@@ -24,18 +24,6 @@ const usuarioSchema = new mongoose.Schema(
       trim: true,
       lowercase: true
     },
-     emailVerified: {
-      type: Boolean,
-      default: false
-    },
-    emailVerification: {
-      token: {
-        type: String
-      },
-      expiresAt: {
-        type: Date
-      }
-    },
     telefono: {
       type: String,
       required: true,
@@ -73,23 +61,7 @@ const usuarioSchema = new mongoose.Schema(
       expiresAt: {
         type: Date
       }
-   },
-    loginAttempts: {
-      count: {
-        type: Number,
-        default: 0
-      },
-      lastAttempt: {
-        type: Date
-      },
-      lockUntil: {
-        type: Date
-      }
-    },
-    tokenVersion: {
-      type: Number,
-      default: 0
-    }
+     }
   },
   {
     timestamps: true

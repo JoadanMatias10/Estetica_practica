@@ -1,10 +1,5 @@
-import crypto from 'crypto'
 import Usuario from '../models/Usuario.js'
 import { hashPassword } from '../lib/bcrypt.js'
-import { sendEmailVerificationCode } from '../services/verification.service.js'
-//import { PASSWORD_PATTERN, PASSWORD_PATTERN_MESSAGE } from '../utils/password-pattern.js'
-
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/
 
 const requiredFields = [
   'nombre',
@@ -16,8 +11,6 @@ const requiredFields = [
   'rol',
   'aceptaTerminos'
 ]
-
-const sanitizeText = (value) => (typeof value === 'string' ? value.replace(/<[^>]*>?/g, '').trim() : value)
 
 const validatePayload = (payload) => {
   const missing = requiredFields.filter((field) =>
@@ -40,9 +33,9 @@ const validatePayload = (payload) => {
     return 'El rol proporcionado no es válido.'
   }
 
-  if (!PASSWORD_REGEX.test(payload.password)) {
-    return 'La contraseña debe tener al menos 8 caracteres e incluir al menos una letra y un número.'
-  } 
+  if (payload.password.length < 8) {
+    return 'La contraseña debe tener al menos 8 caracteres.'
+  }
 
   if (payload.aceptaTerminos !== true) {
     return 'Es necesario aceptar los términos y el aviso de privacidad.'
@@ -53,21 +46,12 @@ const validatePayload = (payload) => {
 
 export const registrarUsuario = async (req, res) => {
   try {
-
-    const sanitizedPayload = Object.fromEntries(
-      Object.entries(req.body || {}).map(([key, value]) => [key, sanitizeText(value)])
-    )
-
-    if (typeof sanitizedPayload.email === 'string') {
-      sanitizedPayload.email = sanitizedPayload.email.toLowerCase()
-    }
-
-    const validationMessage = validatePayload(sanitizedPayload)
+    const validationMessage = validatePayload(req.body)
     if (validationMessage) {
       return res.status(400).json({ message: validationMessage })
     }
 
-     const { email, password, confirmPassword, ...rest } = sanitizedPayload
+    const { email, password, confirmPassword, ...rest } = req.body
 
     if (confirmPassword && confirmPassword !== password) {
       return res.status(400).json({ message: 'Las contraseñas no coinciden.' })
@@ -80,23 +64,13 @@ export const registrarUsuario = async (req, res) => {
 
     const hashedPassword = await hashPassword(password)
 
-   const verificationCode = crypto.randomInt(100000, 999999).toString()
-    const hashedVerificationToken = crypto.createHash('sha256').update(verificationCode).digest('hex')
-
     const usuario = new Usuario({
       ...rest,
       email,
-      password: hashedPassword,
-      emailVerified: false,
-      emailVerification: {
-        token: hashedVerificationToken,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-      }
+      password: hashedPassword
     })
 
     await usuario.save()
-
-    await sendEmailVerificationCode({ to: email, code: verificationCode })
 
     return res.status(201).json({ message: 'Usuario registrado correctamente.' })
   } catch (error) {
