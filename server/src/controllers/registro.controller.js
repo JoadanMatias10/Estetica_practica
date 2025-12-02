@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 import Usuario from '../models/Usuario.js'
 import { hashPassword } from '../lib/bcrypt.js'
-import { sendEmailVerificationLink } from '../services/verification.service.js'
+import { sendEmailVerificationCode } from '../services/verification.service.js'
 //import { PASSWORD_PATTERN, PASSWORD_PATTERN_MESSAGE } from '../utils/password-pattern.js'
 
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/
@@ -80,8 +80,8 @@ export const registrarUsuario = async (req, res) => {
 
     const hashedPassword = await hashPassword(password)
 
-    const verificationToken = crypto.randomBytes(32).toString('hex')
-    const hashedVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex')
+   const verificationCode = crypto.randomInt(100000, 999999).toString()
+    const hashedVerificationToken = crypto.createHash('sha256').update(verificationCode).digest('hex')
 
     const usuario = new Usuario({
       ...rest,
@@ -96,7 +96,7 @@ export const registrarUsuario = async (req, res) => {
 
     await usuario.save()
 
-    await sendEmailVerificationLink({ to: email, token: verificationToken })
+    await sendEmailVerificationCode({ to: email, code: verificationCode })
 
     return res.status(201).json({ message: 'Usuario registrado correctamente.' })
   } catch (error) {
