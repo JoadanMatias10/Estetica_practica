@@ -487,7 +487,7 @@ const handleSubmit = async () => {
       payload.secretAnswer = form.secretAnswer
     }
 
-       const response = await fetch(`${apiBaseUrl.value}/api/registro`, {
+      const response = await fetch(`${apiBaseUrl.value}/api/registro`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
