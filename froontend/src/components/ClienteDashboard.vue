@@ -122,8 +122,6 @@ const logout = () => {
   emit('navigate', 'login')
 }
 //NUEVO
-import { onMounted, onBeforeUnmount } from 'vue'
-
 // ⏱️ tiempo de inactividad permitido (1 minuto)
 const INACTIVITY_LIMIT_MS = 60_000
 
