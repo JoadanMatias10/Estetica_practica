@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   userName: {
@@ -120,6 +121,62 @@ const logout = () => {
   // Redirige al login (ajusta la ruta si es otra)
   emit('navigate', 'login')
 }
+//NUEVO
+import { onMounted, onBeforeUnmount } from 'vue'
+
+// ⏱️ tiempo de inactividad permitido (1 minuto)
+const INACTIVITY_LIMIT_MS = 60_000
+
+let inactivityTimer = null
+
+// Eventos que consideramos "actividad" del usuario
+const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart']
+
+// Qué pasa cuando se cumple el tiempo sin actividad
+const handleInactivityLogout = () => {
+  // Mensaje para el usuario
+  alert('Tu sesión expiró por inactividad. Vuelve a iniciar sesión.')
+
+  // Usamos tu MISMA función de logout
+  logout()
+}
+
+// Reinicia el temporizador
+const resetInactivityTimer = () => {
+  if (inactivityTimer) clearTimeout(inactivityTimer)
+  inactivityTimer = setTimeout(handleInactivityLogout, INACTIVITY_LIMIT_MS)
+}
+
+// Agrega los listeners de actividad
+const startInactivityWatcher = () => {
+  activityEvents.forEach((ev) => {
+    window.addEventListener(ev, resetInactivityTimer)
+  })
+  // Empezamos a contar desde que entra al dashboard
+  resetInactivityTimer()
+}
+
+// Quita los listeners cuando sales del dashboard
+const stopInactivityWatcher = () => {
+  activityEvents.forEach((ev) => {
+    window.removeEventListener(ev, resetInactivityTimer)
+  })
+  if (inactivityTimer) {
+    clearTimeout(inactivityTimer)
+    inactivityTimer = null
+  }
+}
+
+// Activamos el watcher cuando se monta el componente
+onMounted(() => {
+  startInactivityWatcher()
+})
+
+// Lo limpiamos cuando sales de esta pantalla
+onBeforeUnmount(() => {
+  stopInactivityWatcher()
+})
+
 </script>
 
 <template>
